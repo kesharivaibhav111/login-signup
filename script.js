@@ -21,6 +21,7 @@
   const logoutBtn = document.getElementById('logoutBtn');
   const loginBtn = document.getElementById('loginBtn');
   const signupBtn = document.getElementById('signupBtn');
+  const rememberCheckbox = document.getElementById('remember');
 
   let peekActive = false;
   let alertTimer = null;
@@ -32,7 +33,7 @@
     alertBox.className = `alert-box alert-${type} show`;
     alertTimer = setTimeout(() => {
       alertBox.classList.remove('show');
-    }, 4000);
+    }, 4500);
   }
 
   // ─── Dashboard Helper ───────────────────────────
@@ -48,9 +49,28 @@
     formsSlider.style.display = 'flex';
   }
 
-  // Check existing session
+  function clearAuthData() {
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('auth_user');
+    localStorage.removeItem('auth_expiry');
+    sessionStorage.removeItem('auth_token');
+    sessionStorage.removeItem('auth_user');
+  }
+
+  function getStoredToken() {
+    // Check 30-day expiry first
+    const expiry = localStorage.getItem('auth_expiry');
+    if (expiry && Date.now() > parseInt(expiry, 10)) {
+      clearAuthData();
+      showAlert('Your 30-day session has expired. Please log in again.');
+      return null;
+    }
+    return localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+  }
+
+  // Check existing session on load
   async function checkAuthSession() {
-    const token = localStorage.getItem('auth_token');
+    const token = getStoredToken();
     if (!token) return;
 
     try {
@@ -61,11 +81,17 @@
       if (data.success && data.user) {
         showDashboard(data.user);
       } else {
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('auth_user');
+        clearAuthData();
+        if (data.expired) {
+          showAlert('Your 30-day session has expired. Please log in again.');
+        }
       }
     } catch (e) {
-      // Backend not reached, keep forms visible
+      // Offline/offline check - keep dashboard if token exists
+      const savedUser = localStorage.getItem('auth_user') || sessionStorage.getItem('auth_user');
+      if (savedUser) {
+        try { showDashboard(JSON.parse(savedUser)); } catch(_) {}
+      }
     }
   }
   checkAuthSession();
@@ -86,8 +112,7 @@
   });
 
   logoutBtn.addEventListener('click', () => {
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('auth_user');
+    clearAuthData();
     hideDashboard();
     showAlert('Logged out successfully.', 'success');
   });
@@ -152,6 +177,7 @@
     e.preventDefault();
     const email = document.getElementById('loginEmail').value.trim();
     const password = document.getElementById('loginPassword').value;
+    const rememberMe = rememberCheckbox ? rememberCheckbox.checked : false;
 
     if (!email || !password) {
       showAlert('Please enter both email and password.');
@@ -165,13 +191,23 @@
       const res = await fetch(`${API_BASE}/api/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ email, password, rememberMe })
       });
       const data = await res.json();
 
       if (data.success) {
-        localStorage.setItem('auth_token', data.token);
-        localStorage.setItem('auth_user', JSON.stringify(data.user));
+        clearAuthData();
+        if (rememberMe) {
+          // Store in localStorage for 30 days
+          localStorage.setItem('auth_token', data.token);
+          localStorage.setItem('auth_user', JSON.stringify(data.user));
+          localStorage.setItem('auth_expiry', (Date.now() + 30 * 24 * 60 * 60 * 1000).toString());
+        } else {
+          // Session storage (cleared when browser closed)
+          sessionStorage.setItem('auth_token', data.token);
+          sessionStorage.setItem('auth_user', JSON.stringify(data.user));
+        }
+
         showAlert(data.message || 'Login successful!', 'success');
         loginForm.reset();
         showDashboard(data.user);
@@ -230,8 +266,11 @@
       const data = await res.json();
 
       if (data.success) {
+        clearAuthData();
         localStorage.setItem('auth_token', data.token);
         localStorage.setItem('auth_user', JSON.stringify(data.user));
+        localStorage.setItem('auth_expiry', (Date.now() + 30 * 24 * 60 * 60 * 1000).toString());
+
         showAlert(data.message || 'Account created successfully!', 'success');
         signupForm.reset();
         showDashboard(data.user);

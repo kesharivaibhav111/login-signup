@@ -46,7 +46,10 @@ const authMiddleware = (req, res, next) => {
     req.userId = decoded.userId;
     next();
   } catch (error) {
-    return res.status(401).json({ success: false, message: 'Invalid or expired token' });
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({ success: false, message: 'Session expired. Please log in again.', expired: true });
+    }
+    return res.status(401).json({ success: false, message: 'Invalid token' });
   }
 };
 
@@ -87,7 +90,7 @@ app.post('/api/signup', async (req, res) => {
 
     await newUser.save();
 
-    const token = jwt.sign({ userId: newUser._id }, JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ userId: newUser._id }, JWT_SECRET, { expiresIn: '30d' });
 
     res.status(201).json({
       success: true,
@@ -107,10 +110,10 @@ app.post('/api/signup', async (req, res) => {
   }
 });
 
-// 2. Login Route
+// 2. Login Route (Supports 30 Days Remember Me)
 app.post('/api/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, rememberMe } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({ success: false, message: 'Please provide both email and password.' });
@@ -126,12 +129,15 @@ app.post('/api/login', async (req, res) => {
       return res.status(401).json({ success: false, message: 'Invalid email or password.' });
     }
 
-    const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '7d' });
+    // 30 days if rememberMe checked, else 1 day session
+    const tokenExpiry = rememberMe ? '30d' : '1d';
+    const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: tokenExpiry });
 
     res.json({
       success: true,
       message: 'Logged in successfully!',
       token,
+      rememberMe: !!rememberMe,
       user: {
         id: user._id,
         firstName: user.firstName,
