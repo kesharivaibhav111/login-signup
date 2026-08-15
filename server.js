@@ -321,7 +321,7 @@ app.post('/api/forgot-password', async (req, res) => {
 
 app.post('/api/google-auth', async (req, res) => {
   try {
-    const { credential, accessToken } = req.body;
+    const { credential, accessToken, action } = req.body;
     let email, given_name, family_name, picture, sub;
 
     if (accessToken) {
@@ -353,28 +353,102 @@ app.post('/api/google-auth', async (req, res) => {
     }
 
     let user = await User.findOne({ email: email.toLowerCase().trim() });
+
     if (user) {
       if (!user.googleId) {
         user.googleId = sub;
         if (!user.avatar && picture) user.avatar = picture;
         await user.save();
       }
-    } else {
-      user = new User({
+
+      const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '30d' });
+
+      return res.json({
+        success: true,
+        message: 'Signed in with Google successfully!',
+        token,
+        user: {
+          id: user._id,
+          firstName: user.firstName,
+          middleName: user.middleName || '',
+          lastName: user.lastName || '',
+          email: user.email,
+          avatar: user.avatar || ''
+        }
+      });
+    }
+
+    // If new user and signing up -> Send OTP to Google email
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    await Otp.deleteMany({ email: email.toLowerCase().trim() });
+
+    const newOtp = new Otp({
+      email: email.toLowerCase().trim(),
+      otp: otpCode
+    });
+    await newOtp.save();
+
+    await sendThinkPixelLabsOtpEmail(email.toLowerCase().trim(), otpCode, given_name || 'there');
+
+    return res.json({
+      success: true,
+      requireOtp: true,
+      message: `OTP sent to your Google email (${email.toLowerCase().trim()})!`,
+      googleUser: {
         firstName: given_name || 'Google User',
+        middleName: '',
         lastName: family_name || '',
         email: email.toLowerCase().trim(),
         googleId: sub,
         avatar: picture || ''
+      }
+    });
+  } catch (error) {
+    console.error('Google auth error:', error);
+    res.status(500).json({ success: false, message: 'Google authentication failed.' });
+  }
+});
+
+app.post('/api/verify-google-otp', async (req, res) => {
+  try {
+    const { email, firstName, lastName, googleId, avatar, otp } = req.body;
+
+    if (!email || !otp) {
+      return res.status(400).json({ success: false, message: 'Email and OTP code are required.' });
+    }
+
+    const otpRecord = await Otp.findOne({
+      email: email.toLowerCase().trim(),
+      otp: otp.trim()
+    });
+
+    if (!otpRecord) {
+      return res.status(400).json({ success: false, message: 'Invalid or expired OTP. Please check your code or request a new one.' });
+    }
+
+    let user = await User.findOne({ email: email.toLowerCase().trim() });
+    if (!user) {
+      user = new User({
+        firstName: firstName || 'Google User',
+        lastName: lastName || '',
+        email: email.toLowerCase().trim(),
+        googleId: googleId || '',
+        avatar: avatar || ''
       });
+      await user.save();
+    } else {
+      user.googleId = googleId || user.googleId;
+      if (!user.avatar && avatar) user.avatar = avatar;
       await user.save();
     }
 
+    await Otp.deleteMany({ email: email.toLowerCase().trim() });
+
     const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '30d' });
 
-    res.json({
+    res.status(201).json({
       success: true,
-      message: 'Signed in with Google successfully!',
+      message: 'Google email verified! Account created successfully.',
       token,
       user: {
         id: user._id,
@@ -386,8 +460,8 @@ app.post('/api/google-auth', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Google auth error:', error);
-    res.status(500).json({ success: false, message: 'Google authentication failed.' });
+    console.error('Verify Google OTP error:', error);
+    res.status(500).json({ success: false, message: 'Server error during verification.' });
   }
 });
 

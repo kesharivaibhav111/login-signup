@@ -340,7 +340,7 @@
       const data = await res.json();
 
       if (data.success) {
-        pendingSignupData = { firstName, middleName, lastName, email, password, confirmPassword };
+        pendingSignupData = { firstName, middleName, lastName, email, password, confirmPassword, isGoogle: false };
         otpEmailDisplay.textContent = email;
         resetSliderClasses();
         formsSlider.classList.add('show-otp');
@@ -366,10 +366,17 @@
       resendOtpBtn.textContent = 'Sending…';
 
       try {
-        const res = await fetch(`${API_BASE}/api/send-otp`, {
+        const endpoint = pendingSignupData.isGoogle ? `${API_BASE}/api/send-otp` : `${API_BASE}/api/send-otp`;
+        const res = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(pendingSignupData)
+          body: JSON.stringify({
+            firstName: pendingSignupData.firstName,
+            lastName: pendingSignupData.lastName,
+            email: pendingSignupData.email,
+            password: pendingSignupData.password || 'google_auth_placeholder',
+            confirmPassword: pendingSignupData.password || 'google_auth_placeholder'
+          })
         });
         const data = await res.json();
         if (data.success) {
@@ -408,13 +415,28 @@
       verifyOtpBtn.textContent = 'Verifying…';
 
       try {
-        const res = await fetch(`${API_BASE}/api/verify-otp-signup`, {
+        const endpoint = pendingSignupData.isGoogle
+          ? `${API_BASE}/api/verify-google-otp`
+          : `${API_BASE}/api/verify-otp-signup`;
+
+        const payload = pendingSignupData.isGoogle
+          ? {
+              email: pendingSignupData.email,
+              firstName: pendingSignupData.firstName,
+              lastName: pendingSignupData.lastName,
+              googleId: pendingSignupData.googleId,
+              avatar: pendingSignupData.avatar,
+              otp
+            }
+          : {
+              ...pendingSignupData,
+              otp
+            };
+
+        const res = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ...pendingSignupData,
-            otp
-          })
+          body: JSON.stringify(payload)
         });
         const data = await res.json();
 
@@ -496,7 +518,7 @@
     });
   }
 
-  async function handleGoogleAccessToken(accessToken) {
+  async function handleGoogleAccessToken(accessToken, action = 'login') {
     if (!accessToken) {
       showAlert('Google sign in failed. Please try again.');
       return;
@@ -506,11 +528,20 @@
       const res = await fetch(`${API_BASE}/api/google-auth`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accessToken })
+        body: JSON.stringify({ accessToken, action })
       });
       const data = await res.json();
 
-      if (data.success) {
+      if (data.requireOtp && data.googleUser) {
+        pendingSignupData = { ...data.googleUser, isGoogle: true };
+        otpEmailDisplay.textContent = data.googleUser.email;
+        resetSliderClasses();
+        formsSlider.classList.add('show-otp');
+        startOtpTimer();
+        otpInput.value = '';
+        otpInput.focus();
+        showAlert(data.message || 'OTP sent to your Google email! Please verify to complete signup.', 'success');
+      } else if (data.success) {
         clearAuthData();
         localStorage.setItem('auth_token', data.token);
         localStorage.setItem('auth_user', JSON.stringify(data.user));
@@ -526,6 +557,8 @@
     }
   }
 
+  let currentGoogleAction = 'login';
+
   function initGoogleAuth() {
     if (window.google && window.google.accounts && window.google.accounts.oauth2) {
       googleTokenClient = google.accounts.oauth2.initTokenClient({
@@ -533,7 +566,7 @@
         scope: 'email profile openid',
         callback: (tokenResponse) => {
           if (tokenResponse && tokenResponse.access_token) {
-            handleGoogleAccessToken(tokenResponse.access_token);
+            handleGoogleAccessToken(tokenResponse.access_token, currentGoogleAction);
           } else if (tokenResponse && tokenResponse.error) {
             showAlert('Google sign in was cancelled or failed.');
           }
@@ -555,7 +588,8 @@
     }, 200);
   });
 
-  function triggerGoogleSignIn() {
+  function triggerGoogleSignIn(action = 'login') {
+    currentGoogleAction = action;
     if (!googleTokenClient) {
       initGoogleAuth();
     }
@@ -567,6 +601,6 @@
     }
   }
 
-  if (googleBtn) googleBtn.addEventListener('click', triggerGoogleSignIn);
-  if (googleSignupBtn) googleSignupBtn.addEventListener('click', triggerGoogleSignIn);
+  if (googleBtn) googleBtn.addEventListener('click', () => triggerGoogleSignIn('login'));
+  if (googleSignupBtn) googleSignupBtn.addEventListener('click', () => triggerGoogleSignIn('signup'));
 })();
