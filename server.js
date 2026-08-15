@@ -152,6 +152,48 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
+app.post('/api/forgot-password', async (req, res) => {
+  try {
+    const { email, newPassword, confirmNewPassword } = req.body;
+
+    if (!email || !newPassword || !confirmNewPassword) {
+      return res.status(400).json({ success: false, message: 'Please fill in all fields.' });
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      return res.status(400).json({ success: false, message: 'Passwords do not match.' });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long.' });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'No account found with this email.' });
+    }
+
+    if (!user.password && user.googleId) {
+      return res.status(400).json({
+        success: false,
+        message: 'This account is registered via Google Sign In. Please use "Log in with Google" instead.'
+      });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'Password reset successfully! Please log in with your new password.'
+    });
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({ success: false, message: 'Server error. Please try again later.' });
+  }
+});
+
 app.post('/api/google-auth', async (req, res) => {
   try {
     const { credential, accessToken } = req.body;

@@ -12,8 +12,11 @@
   const formsSlider = document.getElementById('formsSlider');
   const loginForm = document.getElementById('loginForm');
   const signupForm = document.getElementById('signupForm');
+  const resetForm = document.getElementById('resetForm');
   const signupLink = document.getElementById('signupLink');
   const loginLink = document.getElementById('loginLink');
+  const forgotLink = document.getElementById('forgotLink');
+  const backToLoginLink = document.getElementById('backToLoginLink');
   const allPwInputs = document.querySelectorAll('.pw-input');
   const alertBox = document.getElementById('alertBox');
   const dashboardView = document.getElementById('dashboardView');
@@ -23,6 +26,7 @@
   const logoutBtn = document.getElementById('logoutBtn');
   const loginBtn = document.getElementById('loginBtn');
   const signupBtn = document.getElementById('signupBtn');
+  const resetBtn = document.getElementById('resetBtn');
   const googleBtn = document.getElementById('googleBtn');
   const googleSignupBtn = document.getElementById('googleSignupBtn');
   const rememberCheckbox = document.getElementById('remember');
@@ -105,6 +109,7 @@
 
   signupLink.addEventListener('click', e => {
     e.preventDefault();
+    formsSlider.classList.remove('show-forgot');
     formsSlider.classList.add('show-signup');
     setPeek(false);
     resetAllToggles();
@@ -113,9 +118,34 @@
   loginLink.addEventListener('click', e => {
     e.preventDefault();
     formsSlider.classList.remove('show-signup');
+    formsSlider.classList.remove('show-forgot');
     setPeek(false);
     resetAllToggles();
   });
+
+  if (forgotLink) {
+    forgotLink.addEventListener('click', e => {
+      e.preventDefault();
+      const loginEmailVal = document.getElementById('loginEmail').value.trim();
+      if (loginEmailVal) {
+        document.getElementById('resetEmail').value = loginEmailVal;
+      }
+      formsSlider.classList.remove('show-signup');
+      formsSlider.classList.add('show-forgot');
+      setPeek(false);
+      resetAllToggles();
+    });
+  }
+
+  if (backToLoginLink) {
+    backToLoginLink.addEventListener('click', e => {
+      e.preventDefault();
+      formsSlider.classList.remove('show-forgot');
+      formsSlider.classList.remove('show-signup');
+      setPeek(false);
+      resetAllToggles();
+    });
+  }
 
   logoutBtn.addEventListener('click', () => {
     clearAuthData();
@@ -285,6 +315,61 @@
       signupBtn.textContent = 'Create account';
     }
   });
+
+  if (resetForm) {
+    resetForm.addEventListener('submit', async e => {
+      e.preventDefault();
+      const email = document.getElementById('resetEmail').value.trim();
+      const newPassword = document.getElementById('newPassword').value;
+      const confirmNewPassword = document.getElementById('confirmNewPassword').value;
+
+      if (!email || !newPassword || !confirmNewPassword) {
+        showAlert('Please fill in all fields.');
+        return;
+      }
+
+      if (newPassword !== confirmNewPassword) {
+        showAlert('New passwords do not match. Please re-enter.');
+        return;
+      }
+
+      if (newPassword.length < 6) {
+        showAlert('Password must be at least 6 characters.');
+        return;
+      }
+
+      resetBtn.disabled = true;
+      resetBtn.textContent = 'Updating password…';
+
+      try {
+        const res = await fetch(`${API_BASE}/api/forgot-password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email,
+            newPassword,
+            confirmNewPassword
+          })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          showAlert(data.message || 'Password reset successfully! Please log in.', 'success');
+          resetForm.reset();
+          document.getElementById('loginEmail').value = email;
+          formsSlider.classList.remove('show-forgot');
+          formsSlider.classList.remove('show-signup');
+        } else {
+          showAlert(data.message || 'Failed to reset password.');
+        }
+      } catch (err) {
+        showAlert('Unable to connect to server. Please ensure backend is running.');
+      } finally {
+        resetBtn.disabled = false;
+        resetBtn.textContent = 'Save new password';
+      }
+    });
+  }
 
   async function handleGoogleAccessToken(accessToken) {
     if (!accessToken) {

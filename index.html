@@ -139,6 +139,38 @@
               <p class="form-footer">Already have an account? <a href="#" id="loginLink">Log in</a></p>
             </form>
           </div>
+          <div class="form-panel">
+            <form class="login-form reset-form" id="resetForm" autocomplete="off" novalidate>
+              <h1>Reset password <span class="star-icon" aria-hidden="true">✦</span></h1>
+              <p class="subtitle">Enter your email and new password.</p>
+              <div class="input-group">
+                <label for="resetEmail">Email</label>
+                <input type="email" id="resetEmail" placeholder="Enter your email" required />
+              </div>
+              <div class="input-group">
+                <label for="newPassword">New password</label>
+                <div class="pw-wrapper">
+                  <input type="password" id="newPassword" class="pw-input" placeholder="••••••••" required />
+                  <button type="button" class="pw-toggle" data-pw-toggle="newPassword" aria-label="Toggle password visibility">
+                    <svg class="eye-icon-open" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                    <svg class="eye-icon-closed" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
+                  </button>
+                </div>
+              </div>
+              <div class="input-group">
+                <label for="confirmNewPassword">Confirm new password</label>
+                <div class="pw-wrapper">
+                  <input type="password" id="confirmNewPassword" class="pw-input" placeholder="••••••••" required />
+                  <button type="button" class="pw-toggle" data-pw-toggle="confirmNewPassword" aria-label="Toggle confirm password visibility">
+                    <svg class="eye-icon-open" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                    <svg class="eye-icon-closed" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
+                  </button>
+                </div>
+              </div>
+              <button type="submit" class="btn btn-primary" id="resetBtn" style="margin-top:.75rem">Save new password</button>
+              <p class="form-footer">Remember your password? <a href="#" id="backToLoginLink">Log in</a></p>
+            </form>
+          </div>
         </div>
       </div>
     </section>

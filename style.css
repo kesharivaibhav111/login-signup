@@ -353,12 +353,13 @@ body {
 }
 .forms-slider {
   display: flex;
-  width: 200%;
+  width: 300%;
   transition: transform .45s cubic-bezier(.4,.0,.2,1);
 }
-.forms-slider.show-signup { transform: translateX(-50%); }
+.forms-slider.show-signup { transform: translateX(-33.333%); }
+.forms-slider.show-forgot { transform: translateX(-66.666%); }
 .form-panel {
-  width: 50%;
+  width: 33.333%;
   flex-shrink: 0;
   padding: 0 2px;
 }
