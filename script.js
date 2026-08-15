@@ -1,6 +1,11 @@
 (()=>{
   'use strict';
 
+  // API Base URL (Supports localhost and deployed backend)
+  const API_BASE = window.location.origin.includes('http') && !window.location.origin.includes('github.io')
+    ? ''
+    : 'http://localhost:3000';
+
   const allEyesDivs = document.querySelectorAll('[data-eyes]');
   const allPupils = document.querySelectorAll('.pupil');
   const formsSlider = document.getElementById('formsSlider');
@@ -9,8 +14,63 @@
   const signupLink = document.getElementById('signupLink');
   const loginLink = document.getElementById('loginLink');
   const allPwInputs = document.querySelectorAll('.pw-input');
-  let peekActive = false;
+  const alertBox = document.getElementById('alertBox');
+  const dashboardView = document.getElementById('dashboardView');
+  const userName = document.getElementById('userName');
+  const userEmail = document.getElementById('userEmail');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const loginBtn = document.getElementById('loginBtn');
+  const signupBtn = document.getElementById('signupBtn');
 
+  let peekActive = false;
+  let alertTimer = null;
+
+  // ─── Alert / Toast Helper ───────────────────────
+  function showAlert(message, type = 'error') {
+    if (alertTimer) clearTimeout(alertTimer);
+    alertBox.textContent = message;
+    alertBox.className = `alert-box alert-${type} show`;
+    alertTimer = setTimeout(() => {
+      alertBox.classList.remove('show');
+    }, 4000);
+  }
+
+  // ─── Dashboard Helper ───────────────────────────
+  function showDashboard(user) {
+    userName.textContent = user.firstName || 'User';
+    userEmail.textContent = user.email || '';
+    formsSlider.style.display = 'none';
+    dashboardView.style.display = 'block';
+  }
+
+  function hideDashboard() {
+    dashboardView.style.display = 'none';
+    formsSlider.style.display = 'flex';
+  }
+
+  // Check existing session
+  async function checkAuthSession() {
+    const token = localStorage.getItem('auth_token');
+    if (!token) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/api/me`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success && data.user) {
+        showDashboard(data.user);
+      } else {
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('auth_user');
+      }
+    } catch (e) {
+      // Backend not reached, keep forms visible
+    }
+  }
+  checkAuthSession();
+
+  // ─── Form Switching ─────────────────────────────
   signupLink.addEventListener('click', e => {
     e.preventDefault();
     formsSlider.classList.add('show-signup');
@@ -25,6 +85,14 @@
     resetAllToggles();
   });
 
+  logoutBtn.addEventListener('click', () => {
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('auth_user');
+    hideDashboard();
+    showAlert('Logged out successfully.', 'success');
+  });
+
+  // ─── Password Toggle ────────────────────────────
   document.querySelectorAll('.pw-toggle').forEach(btn => {
     btn.addEventListener('mousedown', e => e.preventDefault());
     btn.addEventListener('click', () => {
@@ -53,8 +121,8 @@
     allEyesDivs.forEach(d => d.classList.toggle('eyes-peek', on));
   }
 
+  // ─── Eye Tracking ───────────────────────────────
   const MAX_OFFSET = 3.5;
-
   function movePupils(cx, cy) {
     allPupils.forEach(p => {
       if (peekActive && p.closest('.eye:first-child')) return;
@@ -79,17 +147,102 @@
     input.addEventListener('blur', () => { if (input.type === 'password') setPeek(false); });
   });
 
-  loginForm.addEventListener('submit', e => {
+  // ─── Backend API: Login ─────────────────────────
+  loginForm.addEventListener('submit', async e => {
     e.preventDefault();
-    const btn = document.getElementById('loginBtn');
-    btn.textContent = 'Logging in…';
-    setTimeout(() => { btn.textContent = 'Log in'; }, 1500);
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+
+    if (!email || !password) {
+      showAlert('Please enter both email and password.');
+      return;
+    }
+
+    loginBtn.disabled = true;
+    loginBtn.textContent = 'Logging in…';
+
+    try {
+      const res = await fetch(`${API_BASE}/api/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        localStorage.setItem('auth_token', data.token);
+        localStorage.setItem('auth_user', JSON.stringify(data.user));
+        showAlert(data.message || 'Login successful!', 'success');
+        loginForm.reset();
+        showDashboard(data.user);
+      } else {
+        showAlert(data.message || 'Invalid email or password.');
+      }
+    } catch (err) {
+      showAlert('Unable to connect to server. Please ensure backend is running.');
+    } finally {
+      loginBtn.disabled = false;
+      loginBtn.textContent = 'Log in';
+    }
   });
 
-  signupForm.addEventListener('submit', e => {
+  // ─── Backend API: Signup ────────────────────────
+  signupForm.addEventListener('submit', async e => {
     e.preventDefault();
-    const btn = document.getElementById('signupBtn');
-    btn.textContent = 'Creating…';
-    setTimeout(() => { btn.textContent = 'Create account'; }, 1500);
+    const firstName = document.getElementById('firstName').value.trim();
+    const middleName = document.getElementById('middleName').value.trim();
+    const lastName = document.getElementById('lastName').value.trim();
+    const email = document.getElementById('signupEmail').value.trim();
+    const password = document.getElementById('signupPassword').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+
+    if (!firstName || !lastName || !email || !password || !confirmPassword) {
+      showAlert('Please fill in all required fields.');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      showAlert('Passwords do not match.');
+      return;
+    }
+
+    if (password.length < 6) {
+      showAlert('Password must be at least 6 characters.');
+      return;
+    }
+
+    signupBtn.disabled = true;
+    signupBtn.textContent = 'Creating account…';
+
+    try {
+      const res = await fetch(`${API_BASE}/api/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          firstName,
+          middleName,
+          lastName,
+          email,
+          password,
+          confirmPassword
+        })
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        localStorage.setItem('auth_token', data.token);
+        localStorage.setItem('auth_user', JSON.stringify(data.user));
+        showAlert(data.message || 'Account created successfully!', 'success');
+        signupForm.reset();
+        showDashboard(data.user);
+      } else {
+        showAlert(data.message || 'Failed to create account.');
+      }
+    } catch (err) {
+      showAlert('Unable to connect to server. Please ensure backend is running.');
+    } finally {
+      signupBtn.disabled = false;
+      signupBtn.textContent = 'Create account';
+    }
   });
 })();

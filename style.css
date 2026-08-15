@@ -356,6 +356,87 @@ body {
   color: var(--text-secondary);
   font-size: .72rem;
 }
+.alert-box {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 9999;
+  padding: 14px 20px;
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  font-weight: 500;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.12);
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translateY(-20px);
+  opacity: 0;
+  pointer-events: none;
+  max-width: 90vw;
+}
+.alert-box.show {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+.alert-box.alert-success {
+  background: #0f172a;
+  color: #10b981;
+  border: 1px solid #1e293b;
+}
+.alert-box.alert-error {
+  background: #fef2f2;
+  color: #ef4444;
+  border: 1px solid #fecaca;
+}
+.dashboard-card {
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+  padding: 2.5rem 1.5rem;
+  background: #fff;
+  border-radius: var(--radius);
+  border: 1.5px solid var(--border);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+}
+.dashboard-avatar {
+  width: 60px;
+  height: 60px;
+  background: #f0eee9;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.75rem;
+  margin: 0 auto 1.25rem;
+  color: var(--purple);
+}
+.dashboard-card h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 0.35rem;
+}
+.dashboard-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: #059669;
+  background: #ecfdf5;
+  padding: 6px 14px;
+  border-radius: 20px;
+  margin-top: 1rem;
+}
+.status-dot {
+  width: 8px;
+  height: 8px;
+  background: #10b981;
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+}
 @media (max-width: 900px) {
   .split { flex-direction: column; }
   .left-panel {
@@ -381,4 +462,6 @@ body {
   .char-teal { width: 45px; height: 45px; right: 40px; bottom: 90px; }
   .ground { bottom: 28px; }
   .name-row { flex-direction: column; gap: 0; }
+  .alert-box { top: 12px; right: 12px; left: 12px; max-width: none; text-align: center; }
 }
+
