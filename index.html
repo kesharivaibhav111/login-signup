@@ -44,8 +44,9 @@
       </div>
     </section>
     <section class="right-panel">
-      <div class="forms-container">
-        <div id="dashboardView" class="dashboard-card" style="display:none;">
+      <div class="auth-card-container">
+        
+        <div id="dashboardView" class="auth-view dashboard-card">
           <div class="dashboard-avatar" id="userAvatar">✦</div>
           <h2>Welcome, <span id="userName">User</span>!</h2>
           <p class="subtitle" id="userEmail">you@example.com</p>
@@ -55,145 +56,147 @@
           <button type="button" class="btn btn-primary" id="logoutBtn" style="margin-top:1.5rem">Log out</button>
         </div>
 
-        <div class="forms-slider" id="formsSlider">
-          <div class="form-panel">
-            <form class="login-form" id="loginForm" autocomplete="off" novalidate>
-              <h1>Welcome back! <span class="star-icon" aria-hidden="true">✦</span></h1>
-              <p class="subtitle">Please enter your details.</p>
-              <div class="input-group">
-                <label for="loginEmail">Email</label>
-                <input type="email" id="loginEmail" placeholder="Enter your email" required />
+        <div id="loginView" class="auth-view active">
+          <form class="login-form" id="loginForm" autocomplete="off" novalidate>
+            <h1>Welcome back! <span class="star-icon" aria-hidden="true">✦</span></h1>
+            <p class="subtitle">Please enter your details.</p>
+            <div class="input-group">
+              <label for="loginEmail">Email</label>
+              <input type="email" id="loginEmail" placeholder="Enter your email" required />
+            </div>
+            <div class="input-group">
+              <label for="loginPassword">Password</label>
+              <div class="pw-wrapper">
+                <input type="password" id="loginPassword" class="pw-input" placeholder="••••••••" required />
+                <button type="button" class="pw-toggle" data-pw-toggle="loginPassword" aria-label="Toggle password visibility">
+                  <svg class="eye-icon-open" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                  <svg class="eye-icon-closed" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
+                </button>
               </div>
-              <div class="input-group">
-                <label for="loginPassword">Password</label>
-                <div class="pw-wrapper">
-                  <input type="password" id="loginPassword" class="pw-input" placeholder="••••••••" required />
-                  <button type="button" class="pw-toggle" data-pw-toggle="loginPassword" aria-label="Toggle password visibility">
-                    <svg class="eye-icon-open" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-                    <svg class="eye-icon-closed" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
-                  </button>
-                </div>
-              </div>
-              <div class="form-row">
-                <label class="remember-label">
-                  <input type="checkbox" id="remember" />
-                  Remember for 30 days
-                </label>
-                <a href="#" class="forgot-link" id="forgotLink">Forgot password?</a>
-              </div>
-              <button type="submit" class="btn btn-primary" id="loginBtn">Log in</button>
-              <button type="button" class="btn btn-google" id="googleBtn">
-                <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59a14.5 14.5 0 0 1 0-9.18l-7.98-6.19a24.01 24.01 0 0 0 0 21.56l7.98-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-                Log in with Google
-              </button>
-              <p class="form-footer">Don't have an account? <a href="#" id="signupLink">Sign up</a></p>
-            </form>
-          </div>
-          <div class="form-panel">
-            <form class="login-form signup-form" id="signupForm" autocomplete="off" novalidate>
-              <h1>Create account <span class="star-icon" aria-hidden="true">✦</span></h1>
-              <p class="subtitle">Fill in your details to get started.</p>
-              <div class="name-row">
-                <div class="input-group">
-                  <label for="firstName">First name</label>
-                  <input type="text" id="firstName" placeholder="John" required />
-                </div>
-                <div class="input-group middle-name">
-                  <label for="middleName">Middle <span class="optional-tag">(optional)</span></label>
-                  <input type="text" id="middleName" placeholder="—" />
-                </div>
-                <div class="input-group">
-                  <label for="lastName">Last name</label>
-                  <input type="text" id="lastName" placeholder="Doe" required />
-                </div>
-              </div>
-              <div class="input-group">
-                <label for="signupEmail">Email</label>
-                <input type="email" id="signupEmail" placeholder="you@example.com" required />
-              </div>
-              <div class="input-group">
-                <label for="signupPassword">Password</label>
-                <div class="pw-wrapper">
-                  <input type="password" id="signupPassword" class="pw-input" placeholder="••••••••" required />
-                  <button type="button" class="pw-toggle" data-pw-toggle="signupPassword" aria-label="Toggle password visibility">
-                    <svg class="eye-icon-open" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-                    <svg class="eye-icon-closed" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
-                  </button>
-                </div>
-              </div>
-              <div class="input-group">
-                <label for="confirmPassword">Confirm password</label>
-                <div class="pw-wrapper">
-                  <input type="password" id="confirmPassword" class="pw-input" placeholder="••••••••" required />
-                  <button type="button" class="pw-toggle" data-pw-toggle="confirmPassword" aria-label="Toggle confirm password visibility">
-                    <svg class="eye-icon-open" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-                    <svg class="eye-icon-closed" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
-                  </button>
-                </div>
-              </div>
-              <button type="submit" class="btn btn-primary" id="signupBtn" style="margin-top:.5rem">Send Verification OTP</button>
-              <button type="button" class="btn btn-google" id="googleSignupBtn">
-                <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59a14.5 14.5 0 0 1 0-9.18l-7.98-6.19a24.01 24.01 0 0 0 0 21.56l7.98-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-                Sign up with Google
-              </button>
-              <p class="form-footer">Already have an account? <a href="#" id="loginLink">Log in</a></p>
-            </form>
-          </div>
-          <div class="form-panel">
-            <form class="login-form otp-form" id="otpForm" autocomplete="off" novalidate>
-              <h1>Verify Email <span class="star-icon" aria-hidden="true">✦</span></h1>
-              <p class="subtitle">Enter the 6-digit code sent to<br/><span class="email-badge" id="otpEmailDisplay">your email</span></p>
-              
-              <div class="otp-boxes-wrapper" id="otpBoxes">
-                <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" autofocus />
-                <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]*" />
-                <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]*" />
-                <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]*" />
-                <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]*" />
-                <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]*" />
-              </div>
-
-              <div class="otp-timer-row">
-                <span id="otpTimerText">Resend code in <strong id="otpCountdown">01:00</strong></span>
-                <button type="button" id="resendOtpBtn" class="resend-btn" style="display:none;">Resend OTP</button>
-              </div>
-              <button type="submit" class="btn btn-primary" id="verifyOtpBtn" style="margin-top:1.25rem;">Verify & Create Account</button>
-              <p class="form-footer"><a href="#" id="backToSignupLink">← Change email or details</a></p>
-            </form>
-          </div>
-          <div class="form-panel">
-            <form class="login-form reset-form" id="resetForm" autocomplete="off" novalidate>
-              <h1>Reset password <span class="star-icon" aria-hidden="true">✦</span></h1>
-              <p class="subtitle">Enter your email and new password.</p>
-              <div class="input-group">
-                <label for="resetEmail">Email</label>
-                <input type="email" id="resetEmail" placeholder="Enter your email" required />
-              </div>
-              <div class="input-group">
-                <label for="newPassword">New password</label>
-                <div class="pw-wrapper">
-                  <input type="password" id="newPassword" class="pw-input" placeholder="••••••••" required />
-                  <button type="button" class="pw-toggle" data-pw-toggle="newPassword" aria-label="Toggle password visibility">
-                    <svg class="eye-icon-open" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-                    <svg class="eye-icon-closed" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
-                  </button>
-                </div>
-              </div>
-              <div class="input-group">
-                <label for="confirmNewPassword">Confirm new password</label>
-                <div class="pw-wrapper">
-                  <input type="password" id="confirmNewPassword" class="pw-input" placeholder="••••••••" required />
-                  <button type="button" class="pw-toggle" data-pw-toggle="confirmNewPassword" aria-label="Toggle confirm password visibility">
-                    <svg class="eye-icon-open" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-                    <svg class="eye-icon-closed" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
-                  </button>
-                </div>
-              </div>
-              <button type="submit" class="btn btn-primary" id="resetBtn" style="margin-top:.75rem">Save new password</button>
-              <p class="form-footer">Remember your password? <a href="#" id="backToLoginLink">Log in</a></p>
-            </form>
-          </div>
+            </div>
+            <div class="form-row">
+              <label class="remember-label">
+                <input type="checkbox" id="remember" />
+                Remember for 30 days
+              </label>
+              <a href="#" class="forgot-link" id="forgotLink">Forgot password?</a>
+            </div>
+            <button type="submit" class="btn btn-primary" id="loginBtn">Log in</button>
+            <button type="button" class="btn btn-google" id="googleBtn">
+              <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59a14.5 14.5 0 0 1 0-9.18l-7.98-6.19a24.01 24.01 0 0 0 0 21.56l7.98-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+              Log in with Google
+            </button>
+            <p class="form-footer">Don't have an account? <a href="#" id="signupLink">Sign up</a></p>
+          </form>
         </div>
+
+        <div id="signupView" class="auth-view">
+          <form class="login-form signup-form" id="signupForm" autocomplete="off" novalidate>
+            <h1>Create account <span class="star-icon" aria-hidden="true">✦</span></h1>
+            <p class="subtitle">Fill in your details to get started.</p>
+            <div class="name-row">
+              <div class="input-group">
+                <label for="firstName">First name</label>
+                <input type="text" id="firstName" placeholder="John" required />
+              </div>
+              <div class="input-group middle-name">
+                <label for="middleName">Middle <span class="optional-tag">(optional)</span></label>
+                <input type="text" id="middleName" placeholder="—" />
+              </div>
+              <div class="input-group">
+                <label for="lastName">Last name</label>
+                <input type="text" id="lastName" placeholder="Doe" required />
+              </div>
+            </div>
+            <div class="input-group">
+              <label for="signupEmail">Email</label>
+              <input type="email" id="signupEmail" placeholder="you@example.com" required />
+            </div>
+            <div class="input-group">
+              <label for="signupPassword">Password</label>
+              <div class="pw-wrapper">
+                <input type="password" id="signupPassword" class="pw-input" placeholder="••••••••" required />
+                <button type="button" class="pw-toggle" data-pw-toggle="signupPassword" aria-label="Toggle password visibility">
+                  <svg class="eye-icon-open" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                  <svg class="eye-icon-closed" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
+                </button>
+              </div>
+            </div>
+            <div class="input-group">
+              <label for="confirmPassword">Confirm password</label>
+              <div class="pw-wrapper">
+                <input type="password" id="confirmPassword" class="pw-input" placeholder="••••••••" required />
+                <button type="button" class="pw-toggle" data-pw-toggle="confirmPassword" aria-label="Toggle confirm password visibility">
+                  <svg class="eye-icon-open" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                  <svg class="eye-icon-closed" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
+                </button>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary" id="signupBtn" style="margin-top:.5rem">Send Verification OTP</button>
+            <button type="button" class="btn btn-google" id="googleSignupBtn">
+              <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59a14.5 14.5 0 0 1 0-9.18l-7.98-6.19a24.01 24.01 0 0 0 0 21.56l7.98-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+              Sign up with Google
+            </button>
+            <p class="form-footer">Already have an account? <a href="#" id="loginLink">Log in</a></p>
+          </form>
+        </div>
+
+        <div id="otpView" class="auth-view">
+          <form class="login-form otp-form" id="otpForm" autocomplete="off" novalidate>
+            <h1>Verify Email <span class="star-icon" aria-hidden="true">✦</span></h1>
+            <p class="subtitle">Enter the 6-digit code sent to<br/><span class="email-badge" id="otpEmailDisplay">your email</span></p>
+            
+            <div class="otp-boxes-wrapper" id="otpBoxes">
+              <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" />
+              <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]*" />
+              <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]*" />
+              <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]*" />
+              <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]*" />
+              <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]*" />
+            </div>
+
+            <div class="otp-timer-row">
+              <span id="otpTimerText">Resend code in <strong id="otpCountdown">01:00</strong></span>
+              <button type="button" id="resendOtpBtn" class="resend-btn" style="display:none;">Resend OTP</button>
+            </div>
+            <button type="submit" class="btn btn-primary" id="verifyOtpBtn" style="margin-top:1.25rem;">Verify & Create Account</button>
+            <p class="form-footer"><a href="#" id="backToSignupLink">← Change details</a></p>
+          </form>
+        </div>
+
+        <div id="resetView" class="auth-view">
+          <form class="login-form reset-form" id="resetForm" autocomplete="off" novalidate>
+            <h1>Reset password <span class="star-icon" aria-hidden="true">✦</span></h1>
+            <p class="subtitle">Enter your email and new password.</p>
+            <div class="input-group">
+              <label for="resetEmail">Email</label>
+              <input type="email" id="resetEmail" placeholder="Enter your email" required />
+            </div>
+            <div class="input-group">
+              <label for="newPassword">New password</label>
+              <div class="pw-wrapper">
+                <input type="password" id="newPassword" class="pw-input" placeholder="••••••••" required />
+                <button type="button" class="pw-toggle" data-pw-toggle="newPassword" aria-label="Toggle password visibility">
+                  <svg class="eye-icon-open" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                  <svg class="eye-icon-closed" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
+                </button>
+              </div>
+            </div>
+            <div class="input-group">
+              <label for="confirmNewPassword">Confirm new password</label>
+              <div class="pw-wrapper">
+                <input type="password" id="confirmNewPassword" class="pw-input" placeholder="••••••••" required />
+                <button type="button" class="pw-toggle" data-pw-toggle="confirmNewPassword" aria-label="Toggle confirm password visibility">
+                  <svg class="eye-icon-open" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                  <svg class="eye-icon-closed" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
+                </button>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary" id="resetBtn" style="margin-top:.75rem">Save new password</button>
+            <p class="form-footer">Remember your password? <a href="#" id="backToLoginLink">Log in</a></p>
+          </form>
+        </div>
+
       </div>
     </section>
   </div>

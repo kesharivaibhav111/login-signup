@@ -169,35 +169,33 @@ body {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-5px); }
 }
-.forms-container {
+.auth-card-container {
   width: 100%;
   max-width: 400px;
   position: relative;
-  overflow: hidden;
-  box-sizing: border-box;
+  margin: 0 auto;
 }
-.forms-slider {
-  display: flex;
-  width: 400%;
-  box-sizing: border-box;
-  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
-  will-change: transform;
+.auth-view {
+  display: none;
+  width: 100%;
 }
-.forms-slider.show-signup { transform: translateX(-25%); }
-.forms-slider.show-otp { transform: translateX(-50%); }
-.forms-slider.show-forgot { transform: translateX(-75%); }
-.form-panel {
-  width: 25%;
-  flex: 0 0 25%;
-  min-width: 25%;
-  max-width: 25%;
-  box-sizing: border-box;
-  padding: 0 6px;
+.auth-view.active {
+  display: block;
+  animation: authFadeIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes authFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 .login-form {
   width: 100%;
   max-width: 100%;
-  box-sizing: border-box;
 }
 .login-form h1 {
   font-size: 1.75rem;
@@ -229,10 +227,10 @@ body {
   color: var(--text-primary);
   font-weight: 600;
   font-size: 0.85rem;
-  padding: 3px 10px;
+  padding: 4px 12px;
   border-radius: 6px;
   word-break: break-all;
-  margin-top: 4px;
+  margin-top: 6px;
 }
 .input-group {
   margin-bottom: 1rem;
@@ -307,9 +305,8 @@ body {
   justify-content: space-between;
   align-items: center;
   gap: 8px;
-  margin: 1.5rem 0 1rem 0;
+  margin: 1.5rem 0 1.25rem 0;
   width: 100%;
-  box-sizing: border-box;
 }
 .otp-digit {
   width: 48px;
@@ -325,7 +322,6 @@ body {
   outline: none;
   transition: all var(--transition);
   box-shadow: var(--shadow-input);
-  box-sizing: border-box;
   padding: 0;
 }
 .otp-digit:focus {
@@ -481,8 +477,6 @@ body {
   border: 1px solid #fecaca;
 }
 .dashboard-card {
-  width: 100%;
-  max-width: 400px;
   text-align: center;
   padding: 2.5rem 1.5rem;
   background: #fff;
@@ -544,7 +538,7 @@ body {
   .char-teal { width: 55px; height: 55px; right: 55px; bottom: 105px; }
   .ground { bottom: 38px; }
   .right-panel { padding: 2rem 1.25rem; }
-  .forms-container { max-width: 100%; }
+  .auth-card-container { max-width: 100%; }
 }
 @media (max-width: 480px) {
   .login-form h1, .signup-form h1 { font-size: 1.45rem; }

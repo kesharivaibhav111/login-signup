@@ -9,7 +9,7 @@
 
   const allEyesDivs = document.querySelectorAll('[data-eyes]');
   const allPupils = document.querySelectorAll('.pupil');
-  const formsSlider = document.getElementById('formsSlider');
+  const allViews = document.querySelectorAll('.auth-view');
   const loginForm = document.getElementById('loginForm');
   const signupForm = document.getElementById('signupForm');
   const otpForm = document.getElementById('otpForm');
@@ -21,7 +21,6 @@
   const backToSignupLink = document.getElementById('backToSignupLink');
   const allPwInputs = document.querySelectorAll('.pw-input');
   const alertBox = document.getElementById('alertBox');
-  const dashboardView = document.getElementById('dashboardView');
   const userName = document.getElementById('userName');
   const userEmail = document.getElementById('userEmail');
   const userAvatar = document.getElementById('userAvatar');
@@ -54,6 +53,16 @@
     }, 4500);
   }
 
+  function switchView(viewId) {
+    allViews.forEach(v => v.classList.remove('active'));
+    const target = document.getElementById(viewId);
+    if (target) {
+      target.classList.add('active');
+    }
+    setPeek(false);
+    resetAllToggles();
+  }
+
   function showDashboard(user) {
     userName.textContent = user.firstName || 'User';
     userEmail.textContent = user.email || '';
@@ -64,13 +73,7 @@
         userAvatar.textContent = '✦';
       }
     }
-    formsSlider.style.display = 'none';
-    dashboardView.style.display = 'block';
-  }
-
-  function hideDashboard() {
-    dashboardView.style.display = 'none';
-    formsSlider.style.display = 'flex';
+    switchView('dashboardView');
   }
 
   function clearAuthData() {
@@ -117,23 +120,14 @@
   }
   checkAuthSession();
 
-  function resetSliderClasses() {
-    formsSlider.classList.remove('show-signup', 'show-otp', 'show-forgot');
-  }
-
   signupLink.addEventListener('click', e => {
     e.preventDefault();
-    resetSliderClasses();
-    formsSlider.classList.add('show-signup');
-    setPeek(false);
-    resetAllToggles();
+    switchView('signupView');
   });
 
   loginLink.addEventListener('click', e => {
     e.preventDefault();
-    resetSliderClasses();
-    setPeek(false);
-    resetAllToggles();
+    switchView('loginView');
   });
 
   if (forgotLink) {
@@ -143,35 +137,27 @@
       if (loginEmailVal) {
         document.getElementById('resetEmail').value = loginEmailVal;
       }
-      resetSliderClasses();
-      formsSlider.classList.add('show-forgot');
-      setPeek(false);
-      resetAllToggles();
+      switchView('resetView');
     });
   }
 
   if (backToLoginLink) {
     backToLoginLink.addEventListener('click', e => {
       e.preventDefault();
-      resetSliderClasses();
-      setPeek(false);
-      resetAllToggles();
+      switchView('loginView');
     });
   }
 
   if (backToSignupLink) {
     backToSignupLink.addEventListener('click', e => {
       e.preventDefault();
-      resetSliderClasses();
-      formsSlider.classList.add('show-signup');
-      setPeek(false);
-      resetAllToggles();
+      switchView('signupView');
     });
   }
 
   logoutBtn.addEventListener('click', () => {
     clearAuthData();
-    hideDashboard();
+    switchView('loginView');
     showAlert('Logged out successfully.', 'success');
   });
 
@@ -246,7 +232,7 @@
         otpDigits[0].focus();
         otpDigits[0].select();
       }
-    }, 250);
+    }, 150);
   }
 
   otpDigits.forEach((digitInput, idx) => {
@@ -417,8 +403,7 @@
       if (data.success) {
         pendingSignupData = { firstName, middleName, lastName, email, password, confirmPassword, isGoogle: false };
         otpEmailDisplay.textContent = email;
-        resetSliderClasses();
-        formsSlider.classList.add('show-otp');
+        switchView('otpView');
         startOtpTimer();
         clearOtpDigits();
         focusFirstOtpDigit();
@@ -481,8 +466,7 @@
 
     if (!pendingSignupData) {
       showAlert('Signup session expired. Please sign up again.');
-      resetSliderClasses();
-      formsSlider.classList.add('show-signup');
+      switchView('signupView');
       return;
     }
 
@@ -587,7 +571,7 @@
           showAlert(data.message || 'Password reset successfully! Please log in.', 'success');
           resetForm.reset();
           document.getElementById('loginEmail').value = email;
-          resetSliderClasses();
+          switchView('loginView');
         } else {
           showAlert(data.message || 'Failed to reset password.');
         }
@@ -617,8 +601,7 @@
       if (data.requireOtp && data.googleUser) {
         pendingSignupData = { ...data.googleUser, isGoogle: true };
         otpEmailDisplay.textContent = data.googleUser.email;
-        resetSliderClasses();
-        formsSlider.classList.add('show-otp');
+        switchView('otpView');
         startOtpTimer();
         clearOtpDigits();
         focusFirstOtpDigit();
