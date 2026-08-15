@@ -142,11 +142,17 @@
           <div class="form-panel">
             <form class="login-form otp-form" id="otpForm" autocomplete="off" novalidate>
               <h1>Verify Email <span class="star-icon" aria-hidden="true">✦</span></h1>
-              <p class="subtitle">We sent a 6-digit code to <strong id="otpEmailDisplay" style="color:var(--text-primary);">your email</strong>.</p>
-              <div class="input-group">
-                <label for="otpInput">Enter 6-digit OTP</label>
-                <input type="text" id="otpInput" class="otp-input" placeholder="• • • • • •" maxlength="6" inputmode="numeric" required />
+              <p class="subtitle">Enter the 6-digit code sent to <strong id="otpEmailDisplay" style="color:var(--text-primary);word-break:break-all;">your email</strong>.</p>
+              
+              <div class="otp-boxes-wrapper" id="otpBoxes">
+                <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" autofocus />
+                <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]*" />
+                <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]*" />
+                <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]*" />
+                <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]*" />
+                <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]*" />
               </div>
+
               <div class="otp-timer-row">
                 <span id="otpTimerText">Resend code in <strong id="otpCountdown">01:00</strong></span>
                 <button type="button" id="resendOtpBtn" class="resend-btn" style="display:none;">Resend OTP</button>

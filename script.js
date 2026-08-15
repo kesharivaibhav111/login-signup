@@ -34,7 +34,7 @@
   const googleBtn = document.getElementById('googleBtn');
   const googleSignupBtn = document.getElementById('googleSignupBtn');
   const rememberCheckbox = document.getElementById('remember');
-  const otpInput = document.getElementById('otpInput');
+  const otpDigits = document.querySelectorAll('.otp-digit');
   const otpEmailDisplay = document.getElementById('otpEmailDisplay');
   const otpCountdown = document.getElementById('otpCountdown');
   const otpTimerText = document.getElementById('otpTimerText');
@@ -229,6 +229,81 @@
     input.addEventListener('blur', () => { if (input.type === 'password') setPeek(false); });
   });
 
+  function getEnteredOtp() {
+    return Array.from(otpDigits).map(d => d.value.trim()).join('');
+  }
+
+  function clearOtpDigits() {
+    otpDigits.forEach(d => {
+      d.value = '';
+      d.classList.remove('filled');
+    });
+  }
+
+  function focusFirstOtpDigit() {
+    setTimeout(() => {
+      if (otpDigits.length) {
+        otpDigits[0].focus();
+        otpDigits[0].select();
+      }
+    }, 250);
+  }
+
+  otpDigits.forEach((digitInput, idx) => {
+    digitInput.addEventListener('input', e => {
+      const val = e.target.value.replace(/[^0-9]/g, '');
+      digitInput.value = val ? val.slice(-1) : '';
+
+      if (digitInput.value) {
+        digitInput.classList.add('filled');
+        if (idx < otpDigits.length - 1) {
+          otpDigits[idx + 1].focus();
+          otpDigits[idx + 1].select();
+        } else {
+          digitInput.blur();
+          if (getEnteredOtp().length === 6) {
+            submitOtpVerification();
+          }
+        }
+      } else {
+        digitInput.classList.remove('filled');
+      }
+    });
+
+    digitInput.addEventListener('keydown', e => {
+      if (e.key === 'Backspace' && !digitInput.value && idx > 0) {
+        otpDigits[idx - 1].focus();
+        otpDigits[idx - 1].value = '';
+        otpDigits[idx - 1].classList.remove('filled');
+      } else if (e.key === 'ArrowLeft' && idx > 0) {
+        otpDigits[idx - 1].focus();
+      } else if (e.key === 'ArrowRight' && idx < otpDigits.length - 1) {
+        otpDigits[idx + 1].focus();
+      }
+    });
+
+    digitInput.addEventListener('paste', e => {
+      e.preventDefault();
+      const pasteData = (e.clipboardData || window.clipboardData).getData('text').trim().replace(/[^0-9]/g, '');
+      if (!pasteData) return;
+
+      const digits = pasteData.slice(0, 6).split('');
+      digits.forEach((char, i) => {
+        if (otpDigits[i]) {
+          otpDigits[i].value = char;
+          otpDigits[i].classList.add('filled');
+        }
+      });
+
+      if (digits.length === 6) {
+        otpDigits[5].focus();
+        submitOtpVerification();
+      } else if (digits.length < 6 && otpDigits[digits.length]) {
+        otpDigits[digits.length].focus();
+      }
+    });
+  });
+
   loginForm.addEventListener('submit', async e => {
     e.preventDefault();
     const email = document.getElementById('loginEmail').value.trim();
@@ -345,8 +420,8 @@
         resetSliderClasses();
         formsSlider.classList.add('show-otp');
         startOtpTimer();
-        otpInput.value = '';
-        setTimeout(() => otpInput.focus(), 300);
+        clearOtpDigits();
+        focusFirstOtpDigit();
         showAlert(data.message || 'OTP sent! Please check your email.', 'success');
       } else {
         showAlert(data.message || 'Failed to send verification code.');
@@ -366,7 +441,8 @@
       resendOtpBtn.textContent = 'Sending…';
 
       try {
-        const res = await fetch(`${API_BASE}/api/send-otp`, {
+        const endpoint = `${API_BASE}/api/send-otp`;
+        const res = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -380,6 +456,8 @@
         const data = await res.json();
         if (data.success) {
           startOtpTimer();
+          clearOtpDigits();
+          focusFirstOtpDigit();
           showAlert('New OTP sent to your email!', 'success');
         } else {
           showAlert(data.message || 'Failed to resend OTP.');
@@ -393,73 +471,78 @@
     });
   }
 
+  async function submitOtpVerification() {
+    const otp = getEnteredOtp();
+
+    if (!otp || otp.length !== 6) {
+      showAlert('Please enter all 6 digits of the OTP.');
+      return;
+    }
+
+    if (!pendingSignupData) {
+      showAlert('Signup session expired. Please sign up again.');
+      resetSliderClasses();
+      formsSlider.classList.add('show-signup');
+      return;
+    }
+
+    verifyOtpBtn.disabled = true;
+    verifyOtpBtn.textContent = 'Verifying…';
+
+    try {
+      const endpoint = pendingSignupData.isGoogle
+        ? `${API_BASE}/api/verify-google-otp`
+        : `${API_BASE}/api/verify-otp-signup`;
+
+      const payload = pendingSignupData.isGoogle
+        ? {
+            email: pendingSignupData.email,
+            firstName: pendingSignupData.firstName,
+            lastName: pendingSignupData.lastName,
+            googleId: pendingSignupData.googleId,
+            avatar: pendingSignupData.avatar,
+            otp
+          }
+        : {
+            ...pendingSignupData,
+            otp
+          };
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        clearAuthData();
+        localStorage.setItem('auth_token', data.token);
+        localStorage.setItem('auth_user', JSON.stringify(data.user));
+        localStorage.setItem('auth_expiry', (Date.now() + 30 * 24 * 60 * 60 * 1000).toString());
+
+        showAlert(data.message || 'Account verified successfully!', 'success');
+        signupForm.reset();
+        otpForm.reset();
+        clearOtpDigits();
+        pendingSignupData = null;
+        if (otpTimerInterval) clearInterval(otpTimerInterval);
+        showDashboard(data.user);
+      } else {
+        showAlert(data.message || 'Invalid verification code. Please check and retry.');
+      }
+    } catch (err) {
+      showAlert('Unable to connect to server. Please ensure backend is running.');
+    } finally {
+      verifyOtpBtn.disabled = false;
+      verifyOtpBtn.textContent = 'Verify & Create Account';
+    }
+  }
+
   if (otpForm) {
-    otpForm.addEventListener('submit', async e => {
+    otpForm.addEventListener('submit', e => {
       e.preventDefault();
-      const otp = otpInput.value.trim();
-
-      if (!otp || otp.length !== 6) {
-        showAlert('Please enter the 6-digit OTP code.');
-        return;
-      }
-
-      if (!pendingSignupData) {
-        showAlert('Signup session expired. Please sign up again.');
-        resetSliderClasses();
-        formsSlider.classList.add('show-signup');
-        return;
-      }
-
-      verifyOtpBtn.disabled = true;
-      verifyOtpBtn.textContent = 'Verifying…';
-
-      try {
-        const endpoint = pendingSignupData.isGoogle
-          ? `${API_BASE}/api/verify-google-otp`
-          : `${API_BASE}/api/verify-otp-signup`;
-
-        const payload = pendingSignupData.isGoogle
-          ? {
-              email: pendingSignupData.email,
-              firstName: pendingSignupData.firstName,
-              lastName: pendingSignupData.lastName,
-              googleId: pendingSignupData.googleId,
-              avatar: pendingSignupData.avatar,
-              otp
-            }
-          : {
-              ...pendingSignupData,
-              otp
-            };
-
-        const res = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        const data = await res.json();
-
-        if (data.success) {
-          clearAuthData();
-          localStorage.setItem('auth_token', data.token);
-          localStorage.setItem('auth_user', JSON.stringify(data.user));
-          localStorage.setItem('auth_expiry', (Date.now() + 30 * 24 * 60 * 60 * 1000).toString());
-
-          showAlert(data.message || 'Account verified and created successfully!', 'success');
-          signupForm.reset();
-          otpForm.reset();
-          pendingSignupData = null;
-          if (otpTimerInterval) clearInterval(otpTimerInterval);
-          showDashboard(data.user);
-        } else {
-          showAlert(data.message || 'Invalid verification code.');
-        }
-      } catch (err) {
-        showAlert('Unable to connect to server. Please ensure backend is running.');
-      } finally {
-        verifyOtpBtn.disabled = false;
-        verifyOtpBtn.textContent = 'Verify & Create Account';
-      }
+      submitOtpVerification();
     });
   }
 
@@ -537,8 +620,8 @@
         resetSliderClasses();
         formsSlider.classList.add('show-otp');
         startOtpTimer();
-        otpInput.value = '';
-        setTimeout(() => otpInput.focus(), 300);
+        clearOtpDigits();
+        focusFirstOtpDigit();
         showAlert(data.message || 'OTP sent to your Google email! Please verify to complete signup.', 'success');
       } else if (data.success) {
         clearAuthData();

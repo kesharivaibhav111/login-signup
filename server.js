@@ -167,7 +167,9 @@ app.post('/api/send-otp', async (req, res) => {
     });
     await newOtp.save();
 
-    await sendThinkPixelLabsOtpEmail(email.toLowerCase().trim(), otpCode, firstName.trim());
+    sendThinkPixelLabsOtpEmail(email.toLowerCase().trim(), otpCode, firstName.trim()).catch(err => {
+      console.error('Async mail dispatch error:', err.message);
+    });
 
     res.json({
       success: true,
@@ -175,7 +177,7 @@ app.post('/api/send-otp', async (req, res) => {
     });
   } catch (error) {
     console.error('Send OTP error:', error);
-    res.status(500).json({ success: false, message: 'Failed to send OTP email. Please check your email address.' });
+    res.status(500).json({ success: false, message: 'Failed to send OTP email. Please try again.' });
   }
 });
 
@@ -362,12 +364,14 @@ app.post('/api/google-auth', async (req, res) => {
       });
       await newOtp.save();
 
-      await sendThinkPixelLabsOtpEmail(email.toLowerCase().trim(), otpCode, given_name || 'there');
+      sendThinkPixelLabsOtpEmail(email.toLowerCase().trim(), otpCode, given_name || 'there').catch(err => {
+        console.error('Async mail dispatch error (Google signup):', err.message);
+      });
 
       return res.json({
         success: true,
         requireOtp: true,
-        message: `OTP sent to your Google email (${email.toLowerCase().trim()})!`,
+        message: `OTP sent to ${email.toLowerCase().trim()}`,
         googleUser: {
           firstName: given_name || 'Google User',
           middleName: '',
@@ -391,12 +395,14 @@ app.post('/api/google-auth', async (req, res) => {
       });
       await newOtp.save();
 
-      await sendThinkPixelLabsOtpEmail(email.toLowerCase().trim(), otpCode, given_name || 'there');
+      sendThinkPixelLabsOtpEmail(email.toLowerCase().trim(), otpCode, given_name || 'there').catch(err => {
+        console.error('Async mail dispatch error (Google login new user):', err.message);
+      });
 
       return res.json({
         success: true,
         requireOtp: true,
-        message: `Account not found. Verification OTP sent to ${email.toLowerCase().trim()} to create your account!`,
+        message: `Account not found. OTP sent to ${email.toLowerCase().trim()} to create your account!`,
         googleUser: {
           firstName: given_name || 'Google User',
           middleName: '',
@@ -463,7 +469,7 @@ app.post('/api/verify-google-otp', async (req, res) => {
       });
       await user.save();
     } else {
-      user.googleId = googleId || user.googleId;
+      if (googleId) user.googleId = googleId;
       if (!user.avatar && avatar) user.avatar = avatar;
       await user.save();
     }
