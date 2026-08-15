@@ -5,16 +5,28 @@ const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const path = require('path');
+const nodemailer = require('nodemailer');
 const { OAuth2Client } = require('google-auth-library');
 const User = require('./models/User');
+const Otp = require('./models/Otp');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_key_login_2026';
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '475693894846-vo3m578joq2folkmt2qbnn2uahl8qsau.apps.googleusercontent.com';
 const MONGO_URI = (process.env.MONGO_URI && process.env.MONGO_URI.trim()) || 'mongodb+srv://vaibhavkeshari495_db_user:8yysFuy2pC1nMp7i@cluster0.bkynzi0.mongodb.net/auth_db?retryWrites=true&w=majority&appName=Cluster0';
+const EMAIL_USER = process.env.EMAIL_USER || 'vaibhavkeshari495@gmail.com';
+const EMAIL_PASS = process.env.EMAIL_PASS || 'twzlaagrurnbvqes';
 
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
+
+const transporter = nodemailer.createTransporter({
+  service: 'gmail',
+  auth: {
+    user: EMAIL_USER,
+    pass: EMAIL_PASS
+  }
+});
 
 app.use(cors());
 app.use(express.json());
@@ -53,9 +65,80 @@ const authMiddleware = (req, res, next) => {
   }
 };
 
-app.post('/api/signup', async (req, res) => {
+const sendThinkPixelLabsOtpEmail = async (email, otp, firstName = 'there') => {
+  const mailOptions = {
+    from: `"THINK PIXELLABS" <${EMAIL_USER}>`,
+    to: email,
+    subject: `Your Verification Code: ${otp} — THINK PIXELLABS`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>THINK PIXELLABS Verification Code</title>
+      </head>
+      <body style="margin:0;padding:0;background-color:#0b0f19;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#f3f4f6;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#0b0f19;padding:40px 15px;">
+          <tr>
+            <td align="center">
+              <table role="presentation" width="100%" style="max-width:540px;background-color:#131b2e;border:1px solid #1f293d;border-radius:18px;overflow:hidden;box-shadow:0 20px 40px rgba(0,0,0,0.5);">
+                <tr>
+                  <td style="padding:36px 36px 20px 36px;text-align:center;background:linear-gradient(180deg,#1c2642 0%,#131b2e 100%);border-bottom:1px solid #1f293d;">
+                    <div style="display:inline-block;padding:6px 16px;background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.3);border-radius:24px;color:#c084fc;font-size:13px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px;">
+                      ✦ THINK PIXELLABS
+                    </div>
+                    <h1 style="margin:10px 0 6px 0;font-size:24px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;">
+                      Welcome to THINK PIXELLABS
+                    </h1>
+                    <p style="margin:0;font-size:14px;color:#94a3b8;">
+                      Creative Digital Studio & Technology
+                    </p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:32px 36px 24px 36px;">
+                    <p style="margin:0 0 16px 0;font-size:16px;color:#e2e8f0;line-height:1.6;">
+                      Hi <strong>${firstName}</strong>,
+                    </p>
+                    <p style="margin:0 0 24px 0;font-size:15px;color:#94a3b8;line-height:1.6;">
+                      Thank you for choosing <strong>THINK PIXELLABS</strong>! Please enter the following 6-digit one-time password (OTP) to verify your email and complete your registration:
+                    </p>
+                    <div style="background-color:#0b0f19;border:1.5px dashed #8b5cf6;border-radius:14px;padding:22px 15px;text-align:center;margin:24px 0;box-shadow:0 0 25px rgba(139,92,246,0.15);">
+                      <span style="font-family:'Courier New',Courier,monospace;font-size:36px;font-weight:800;letter-spacing:10px;color:#c084fc;display:inline-block;padding-left:10px;">
+                        ${otp}
+                      </span>
+                    </div>
+                    <p style="margin:20px 0 0 0;font-size:13px;color:#64748b;line-height:1.5;text-align:center;">
+                      ⏱️ This OTP is valid for <strong>10 minutes</strong>. Never share this code with anyone.
+                    </p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:24px 36px 32px 36px;background-color:#0e1525;border-top:1px solid #1f293d;text-align:center;">
+                    <p style="margin:0 0 8px 0;font-size:13px;color:#94a3b8;">
+                      Explore our work at <a href="https://thinkpixellabs.com" target="_blank" style="color:#a78bfa;text-decoration:none;font-weight:600;">thinkpixellabs.com</a>
+                    </p>
+                    <p style="margin:0;font-size:12px;color:#475569;">
+                      © ${new Date().getFullYear()} ThinkPixelLabs. All rights reserved.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `
+  };
+
+  return transporter.sendMail(mailOptions);
+};
+
+app.post('/api/send-otp', async (req, res) => {
   try {
-    const { firstName, middleName, lastName, email, password, confirmPassword } = req.body;
+    const { firstName, lastName, email, password, confirmPassword } = req.body;
 
     if (!firstName || !lastName || !email || !password || !confirmPassword) {
       return res.status(400).json({ success: false, message: 'Please fill in all required fields.' });
@@ -67,6 +150,54 @@ app.post('/api/signup', async (req, res) => {
 
     if (password.length < 6) {
       return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long.' });
+    }
+
+    const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
+    if (existingUser) {
+      return res.status(409).json({ success: false, message: 'An account with this email already exists.' });
+    }
+
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+    await Otp.deleteMany({ email: email.toLowerCase().trim() });
+
+    const newOtp = new Otp({
+      email: email.toLowerCase().trim(),
+      otp: otpCode
+    });
+    await newOtp.save();
+
+    await sendThinkPixelLabsOtpEmail(email.toLowerCase().trim(), otpCode, firstName.trim());
+
+    res.json({
+      success: true,
+      message: `OTP sent to ${email.toLowerCase().trim()}`
+    });
+  } catch (error) {
+    console.error('Send OTP error:', error);
+    res.status(500).json({ success: false, message: 'Failed to send OTP email. Please check your email address.' });
+  }
+});
+
+app.post('/api/verify-otp-signup', async (req, res) => {
+  try {
+    const { firstName, middleName, lastName, email, password, confirmPassword, otp } = req.body;
+
+    if (!firstName || !lastName || !email || !password || !otp) {
+      return res.status(400).json({ success: false, message: 'Please fill in all fields including the OTP.' });
+    }
+
+    if (password !== confirmPassword) {
+      return res.status(400).json({ success: false, message: 'Passwords do not match.' });
+    }
+
+    const otpRecord = await Otp.findOne({
+      email: email.toLowerCase().trim(),
+      otp: otp.trim()
+    });
+
+    if (!otpRecord) {
+      return res.status(400).json({ success: false, message: 'Invalid or expired OTP. Please check your code or request a new one.' });
     }
 
     const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
@@ -86,12 +217,13 @@ app.post('/api/signup', async (req, res) => {
     });
 
     await newUser.save();
+    await Otp.deleteMany({ email: email.toLowerCase().trim() });
 
     const token = jwt.sign({ userId: newUser._id }, JWT_SECRET, { expiresIn: '30d' });
 
     res.status(201).json({
       success: true,
-      message: 'Account created successfully!',
+      message: 'Email verified! Account created successfully.',
       token,
       user: {
         id: newUser._id,
@@ -102,8 +234,8 @@ app.post('/api/signup', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Signup error:', error);
-    res.status(500).json({ success: false, message: 'Server error. Please try again later.' });
+    console.error('Verify OTP signup error:', error);
+    res.status(500).json({ success: false, message: 'Server error during verification.' });
   }
 });
 

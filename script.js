@@ -12,11 +12,13 @@
   const formsSlider = document.getElementById('formsSlider');
   const loginForm = document.getElementById('loginForm');
   const signupForm = document.getElementById('signupForm');
+  const otpForm = document.getElementById('otpForm');
   const resetForm = document.getElementById('resetForm');
   const signupLink = document.getElementById('signupLink');
   const loginLink = document.getElementById('loginLink');
   const forgotLink = document.getElementById('forgotLink');
   const backToLoginLink = document.getElementById('backToLoginLink');
+  const backToSignupLink = document.getElementById('backToSignupLink');
   const allPwInputs = document.querySelectorAll('.pw-input');
   const alertBox = document.getElementById('alertBox');
   const dashboardView = document.getElementById('dashboardView');
@@ -26,14 +28,22 @@
   const logoutBtn = document.getElementById('logoutBtn');
   const loginBtn = document.getElementById('loginBtn');
   const signupBtn = document.getElementById('signupBtn');
+  const verifyOtpBtn = document.getElementById('verifyOtpBtn');
+  const resendOtpBtn = document.getElementById('resendOtpBtn');
   const resetBtn = document.getElementById('resetBtn');
   const googleBtn = document.getElementById('googleBtn');
   const googleSignupBtn = document.getElementById('googleSignupBtn');
   const rememberCheckbox = document.getElementById('remember');
+  const otpInput = document.getElementById('otpInput');
+  const otpEmailDisplay = document.getElementById('otpEmailDisplay');
+  const otpCountdown = document.getElementById('otpCountdown');
+  const otpTimerText = document.getElementById('otpTimerText');
 
   let peekActive = false;
   let alertTimer = null;
   let googleTokenClient = null;
+  let pendingSignupData = null;
+  let otpTimerInterval = null;
 
   function showAlert(message, type = 'error') {
     if (alertTimer) clearTimeout(alertTimer);
@@ -107,9 +117,13 @@
   }
   checkAuthSession();
 
+  function resetSliderClasses() {
+    formsSlider.classList.remove('show-signup', 'show-otp', 'show-forgot');
+  }
+
   signupLink.addEventListener('click', e => {
     e.preventDefault();
-    formsSlider.classList.remove('show-forgot');
+    resetSliderClasses();
     formsSlider.classList.add('show-signup');
     setPeek(false);
     resetAllToggles();
@@ -117,8 +131,7 @@
 
   loginLink.addEventListener('click', e => {
     e.preventDefault();
-    formsSlider.classList.remove('show-signup');
-    formsSlider.classList.remove('show-forgot');
+    resetSliderClasses();
     setPeek(false);
     resetAllToggles();
   });
@@ -130,7 +143,7 @@
       if (loginEmailVal) {
         document.getElementById('resetEmail').value = loginEmailVal;
       }
-      formsSlider.classList.remove('show-signup');
+      resetSliderClasses();
       formsSlider.classList.add('show-forgot');
       setPeek(false);
       resetAllToggles();
@@ -140,8 +153,17 @@
   if (backToLoginLink) {
     backToLoginLink.addEventListener('click', e => {
       e.preventDefault();
-      formsSlider.classList.remove('show-forgot');
-      formsSlider.classList.remove('show-signup');
+      resetSliderClasses();
+      setPeek(false);
+      resetAllToggles();
+    });
+  }
+
+  if (backToSignupLink) {
+    backToSignupLink.addEventListener('click', e => {
+      e.preventDefault();
+      resetSliderClasses();
+      formsSlider.classList.add('show-signup');
       setPeek(false);
       resetAllToggles();
     });
@@ -254,6 +276,27 @@
     }
   });
 
+  function startOtpTimer() {
+    if (otpTimerInterval) clearInterval(otpTimerInterval);
+    let secondsLeft = 60;
+    otpCountdown.textContent = '01:00';
+    otpTimerText.style.display = 'inline';
+    resendOtpBtn.style.display = 'none';
+
+    otpTimerInterval = setInterval(() => {
+      secondsLeft--;
+      const mins = String(Math.floor(secondsLeft / 60)).padStart(2, '0');
+      const secs = String(secondsLeft % 60).padStart(2, '0');
+      otpCountdown.textContent = `${mins}:${secs}`;
+
+      if (secondsLeft <= 0) {
+        clearInterval(otpTimerInterval);
+        otpTimerText.style.display = 'none';
+        resendOtpBtn.style.display = 'inline';
+      }
+    }, 1000);
+  }
+
   signupForm.addEventListener('submit', async e => {
     e.preventDefault();
     const firstName = document.getElementById('firstName').value.trim();
@@ -279,10 +322,10 @@
     }
 
     signupBtn.disabled = true;
-    signupBtn.textContent = 'Creating account…';
+    signupBtn.textContent = 'Sending OTP…';
 
     try {
-      const res = await fetch(`${API_BASE}/api/signup`, {
+      const res = await fetch(`${API_BASE}/api/send-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -297,24 +340,107 @@
       const data = await res.json();
 
       if (data.success) {
-        clearAuthData();
-        localStorage.setItem('auth_token', data.token);
-        localStorage.setItem('auth_user', JSON.stringify(data.user));
-        localStorage.setItem('auth_expiry', (Date.now() + 30 * 24 * 60 * 60 * 1000).toString());
-
-        showAlert(data.message || 'Account created successfully!', 'success');
-        signupForm.reset();
-        showDashboard(data.user);
+        pendingSignupData = { firstName, middleName, lastName, email, password, confirmPassword };
+        otpEmailDisplay.textContent = email;
+        resetSliderClasses();
+        formsSlider.classList.add('show-otp');
+        startOtpTimer();
+        otpInput.value = '';
+        otpInput.focus();
+        showAlert(data.message || 'OTP sent! Please check your email.', 'success');
       } else {
-        showAlert(data.message || 'Failed to create account.');
+        showAlert(data.message || 'Failed to send verification code.');
       }
     } catch (err) {
       showAlert('Unable to connect to server. Please ensure backend is running.');
     } finally {
       signupBtn.disabled = false;
-      signupBtn.textContent = 'Create account';
+      signupBtn.textContent = 'Send Verification OTP';
     }
   });
+
+  if (resendOtpBtn) {
+    resendOtpBtn.addEventListener('click', async () => {
+      if (!pendingSignupData) return;
+      resendOtpBtn.disabled = true;
+      resendOtpBtn.textContent = 'Sending…';
+
+      try {
+        const res = await fetch(`${API_BASE}/api/send-otp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(pendingSignupData)
+        });
+        const data = await res.json();
+        if (data.success) {
+          startOtpTimer();
+          showAlert('New OTP sent to your email!', 'success');
+        } else {
+          showAlert(data.message || 'Failed to resend OTP.');
+        }
+      } catch (err) {
+        showAlert('Unable to connect to server.');
+      } finally {
+        resendOtpBtn.disabled = false;
+        resendOtpBtn.textContent = 'Resend OTP';
+      }
+    });
+  }
+
+  if (otpForm) {
+    otpForm.addEventListener('submit', async e => {
+      e.preventDefault();
+      const otp = otpInput.value.trim();
+
+      if (!otp || otp.length !== 6) {
+        showAlert('Please enter the 6-digit OTP code.');
+        return;
+      }
+
+      if (!pendingSignupData) {
+        showAlert('Signup session expired. Please sign up again.');
+        resetSliderClasses();
+        formsSlider.classList.add('show-signup');
+        return;
+      }
+
+      verifyOtpBtn.disabled = true;
+      verifyOtpBtn.textContent = 'Verifying…';
+
+      try {
+        const res = await fetch(`${API_BASE}/api/verify-otp-signup`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...pendingSignupData,
+            otp
+          })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          clearAuthData();
+          localStorage.setItem('auth_token', data.token);
+          localStorage.setItem('auth_user', JSON.stringify(data.user));
+          localStorage.setItem('auth_expiry', (Date.now() + 30 * 24 * 60 * 60 * 1000).toString());
+
+          showAlert(data.message || 'Account verified and created successfully!', 'success');
+          signupForm.reset();
+          otpForm.reset();
+          pendingSignupData = null;
+          if (otpTimerInterval) clearInterval(otpTimerInterval);
+          showDashboard(data.user);
+        } else {
+          showAlert(data.message || 'Invalid verification code.');
+        }
+      } catch (err) {
+        showAlert('Unable to connect to server. Please ensure backend is running.');
+      } finally {
+        verifyOtpBtn.disabled = false;
+        verifyOtpBtn.textContent = 'Verify & Create Account';
+      }
+    });
+  }
 
   if (resetForm) {
     resetForm.addEventListener('submit', async e => {
@@ -357,8 +483,7 @@
           showAlert(data.message || 'Password reset successfully! Please log in.', 'success');
           resetForm.reset();
           document.getElementById('loginEmail').value = email;
-          formsSlider.classList.remove('show-forgot');
-          formsSlider.classList.remove('show-signup');
+          resetSliderClasses();
         } else {
           showAlert(data.message || 'Failed to reset password.');
         }
