@@ -72,14 +72,14 @@ const authMiddleware = (req, res, next) => {
 };
 
 const sendThinkPixelLabsOtpEmail = async (email, otp, firstName = 'there') => {
-  const subject = `Your Verification Code: ${otp} — THINK PIXELLABS`;
+  const subject = `Your Verification Code: ${otp} — Think Pixel Labs`;
   const htmlContent = `
     <!DOCTYPE html>
     <html>
     <head>
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>THINK PIXELLABS Verification Code</title>
+      <title>Think Pixel Labs Verification Code</title>
     </head>
     <body style="margin:0;padding:0;background-color:#0b0f19;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#f3f4f6;">
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#0b0f19;padding:40px 15px;">
@@ -89,10 +89,10 @@ const sendThinkPixelLabsOtpEmail = async (email, otp, firstName = 'there') => {
               <tr>
                 <td style="padding:36px 36px 20px 36px;text-align:center;background:linear-gradient(180deg,#1c2642 0%,#131b2e 100%);border-bottom:1px solid #1f293d;">
                   <div style="display:inline-block;padding:6px 16px;background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.3);border-radius:24px;color:#c084fc;font-size:13px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px;">
-                    ✦ THINK PIXELLABS
+                    ✦ THINK PIXEL LABS
                   </div>
                   <h1 style="margin:10px 0 6px 0;font-size:24px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;">
-                    Welcome to THINK PIXELLABS
+                    Welcome to Think Pixel Labs
                   </h1>
                   <p style="margin:0;font-size:14px;color:#94a3b8;">
                     Creative Digital Studio & Technology
@@ -105,7 +105,7 @@ const sendThinkPixelLabsOtpEmail = async (email, otp, firstName = 'there') => {
                     Hi <strong>${firstName}</strong>,
                   </p>
                   <p style="margin:0 0 24px 0;font-size:15px;color:#94a3b8;line-height:1.6;">
-                    Thank you for choosing <strong>THINK PIXELLABS</strong>! Please enter the following 6-digit verification code to verify your email and complete your registration:
+                    Thank you for choosing <strong>Think Pixel Labs</strong>! Please enter the following 6-digit verification code to verify your email and complete your registration:
                   </p>
                   <div style="background-color:#0b0f19;border:1.5px dashed #8b5cf6;border-radius:14px;padding:22px 15px;text-align:center;margin:24px 0;box-shadow:0 0 25px rgba(139,92,246,0.15);">
                     <span style="font-family:'Courier New',Courier,monospace;font-size:36px;font-weight:800;letter-spacing:10px;color:#c084fc;display:inline-block;padding-left:10px;">
@@ -120,10 +120,10 @@ const sendThinkPixelLabsOtpEmail = async (email, otp, firstName = 'there') => {
               <tr>
                 <td style="padding:24px 36px 32px 36px;background-color:#0e1525;border-top:1px solid #1f293d;text-align:center;">
                   <p style="margin:0 0 8px 0;font-size:13px;color:#94a3b8;">
-                    Explore our work at <a href="https://thinkpixellabs.com" target="_blank" style="color:#a78bfa;text-decoration:none;font-weight:600;">thinkpixellabs.com</a>
+                    Site Designed and Developed with 💗 by <a href="https://thinkpixellabs.com" target="_blank" style="color:#a78bfa;text-decoration:none;font-weight:600;">Think Pixel Labs</a>
                   </p>
                   <p style="margin:0;font-size:12px;color:#475569;">
-                    © ${new Date().getFullYear()} ThinkPixelLabs. All rights reserved.
+                    © ${new Date().getFullYear()} Think Pixel Labs. All rights reserved.
                   </p>
                 </td>
               </tr>
@@ -145,7 +145,7 @@ const sendThinkPixelLabsOtpEmail = async (email, otp, firstName = 'there') => {
       },
       body: JSON.stringify({
         sender: {
-          name: 'THINK PIXELLABS',
+          name: 'Think Pixel Labs',
           email: EMAIL_USER
         },
         to: [
@@ -167,7 +167,7 @@ const sendThinkPixelLabsOtpEmail = async (email, otp, firstName = 'there') => {
   }
 
   const mailOptions = {
-    from: `"THINK PIXELLABS" <${EMAIL_USER}>`,
+    from: `"Think Pixel Labs" <${EMAIL_USER}>`,
     to: email,
     subject: subject,
     priority: 'high',

@@ -43,7 +43,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2rem;
+  padding: 2rem 2rem 4rem 2rem;
+  position: relative;
 }
 .characters-scene {
   position: relative;
@@ -524,6 +525,39 @@ body {
   cursor: not-allowed;
   transform: none !important;
 }
+.site-credit {
+  position: absolute;
+  bottom: 20px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  pointer-events: auto;
+  user-select: none;
+}
+.site-credit a {
+  color: var(--text-primary);
+  font-weight: 600;
+  text-decoration: none;
+  transition: color var(--transition);
+}
+.site-credit a:hover {
+  color: var(--purple);
+  text-decoration: underline;
+}
+.site-credit .heart-icon {
+  display: inline-block;
+  color: #ec4899;
+  font-size: 0.95rem;
+  vertical-align: middle;
+  animation: heartPulse 1.8s ease-in-out infinite;
+}
+@keyframes heartPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.22); }
+}
 @media (max-width: 900px) {
   .split { flex-direction: column; }
   .left-panel {
@@ -537,8 +571,9 @@ body {
   .char-yellow { width: 70px; height: 95px; left: 120px; bottom: 40px; }
   .char-teal { width: 55px; height: 55px; right: 55px; bottom: 105px; }
   .ground { bottom: 38px; }
-  .right-panel { padding: 2rem 1.25rem; }
+  .right-panel { padding: 2rem 1.25rem 2.5rem 1.25rem; }
   .auth-card-container { max-width: 100%; }
+  .site-credit { position: static; margin-top: 2.5rem; }
 }
 @media (max-width: 480px) {
   .login-form h1, .signup-form h1 { font-size: 1.45rem; }
