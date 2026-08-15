@@ -154,17 +154,36 @@ app.post('/api/login', async (req, res) => {
 
 app.post('/api/google-auth', async (req, res) => {
   try {
-    const { credential } = req.body;
-    if (!credential) {
-      return res.status(400).json({ success: false, message: 'Google credential missing.' });
-    }
+    const { credential, accessToken } = req.body;
+    let email, given_name, family_name, picture, sub;
 
-    const ticket = await googleClient.verifyIdToken({
-      idToken: credential,
-      audience: GOOGLE_CLIENT_ID
-    });
-    const payload = ticket.getPayload();
-    const { email, given_name, family_name, picture, sub } = payload;
+    if (accessToken) {
+      const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      const userInfo = await response.json();
+      if (!userInfo || !userInfo.email) {
+        return res.status(400).json({ success: false, message: 'Failed to retrieve Google user info.' });
+      }
+      email = userInfo.email;
+      given_name = userInfo.given_name || userInfo.name;
+      family_name = userInfo.family_name || '';
+      picture = userInfo.picture || '';
+      sub = userInfo.sub;
+    } else if (credential) {
+      const ticket = await googleClient.verifyIdToken({
+        idToken: credential,
+        audience: GOOGLE_CLIENT_ID
+      });
+      const payload = ticket.getPayload();
+      email = payload.email;
+      given_name = payload.given_name || payload.name;
+      family_name = payload.family_name || '';
+      picture = payload.picture || '';
+      sub = payload.sub;
+    } else {
+      return res.status(400).json({ success: false, message: 'Google authentication token missing.' });
+    }
 
     let user = await User.findOne({ email: email.toLowerCase().trim() });
     if (user) {

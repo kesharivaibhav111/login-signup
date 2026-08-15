@@ -29,6 +29,7 @@
 
   let peekActive = false;
   let alertTimer = null;
+  let googleTokenClient = null;
 
   function showAlert(message, type = 'error') {
     if (alertTimer) clearTimeout(alertTimer);
@@ -285,8 +286,8 @@
     }
   });
 
-  async function handleGoogleResponse(response) {
-    if (!response || !response.credential) {
+  async function handleGoogleAccessToken(accessToken) {
+    if (!accessToken) {
       showAlert('Google sign in failed. Please try again.');
       return;
     }
@@ -295,7 +296,7 @@
       const res = await fetch(`${API_BASE}/api/google-auth`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ credential: response.credential })
+        body: JSON.stringify({ accessToken })
       });
       const data = await res.json();
 
@@ -316,26 +317,41 @@
   }
 
   function initGoogleAuth() {
-    if (window.google && window.google.accounts && window.google.accounts.id) {
-      window.google.accounts.id.initialize({
+    if (window.google && window.google.accounts && window.google.accounts.oauth2) {
+      googleTokenClient = google.accounts.oauth2.initTokenClient({
         client_id: GOOGLE_CLIENT_ID,
-        callback: handleGoogleResponse,
-        auto_select: false
+        scope: 'email profile openid',
+        callback: (tokenResponse) => {
+          if (tokenResponse && tokenResponse.access_token) {
+            handleGoogleAccessToken(tokenResponse.access_token);
+          } else if (tokenResponse && tokenResponse.error) {
+            showAlert('Google sign in was cancelled or failed.');
+          }
+        }
       });
     }
   }
 
   window.addEventListener('load', () => {
-    setTimeout(initGoogleAuth, 500);
+    let checkCount = 0;
+    const interval = setInterval(() => {
+      checkCount++;
+      if (window.google && window.google.accounts && window.google.accounts.oauth2) {
+        initGoogleAuth();
+        clearInterval(interval);
+      } else if (checkCount > 20) {
+        clearInterval(interval);
+      }
+    }, 200);
   });
 
   function triggerGoogleSignIn() {
-    if (window.google && window.google.accounts && window.google.accounts.id) {
-      window.google.accounts.id.prompt((notification) => {
-        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-          showAlert('Please enable third-party cookies or popups for Google Sign-In.');
-        }
-      });
+    if (!googleTokenClient) {
+      initGoogleAuth();
+    }
+
+    if (googleTokenClient) {
+      googleTokenClient.requestAccessToken({ prompt: 'select_account' });
     } else {
       showAlert('Google services are still loading. Please try again in a moment.');
     }
