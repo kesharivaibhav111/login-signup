@@ -5,12 +5,16 @@ const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const path = require('path');
+const { OAuth2Client } = require('google-auth-library');
 const User = require('./models/User');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_key_login_2026';
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '475693894846-vo3m578joq2folkmt2qbnn2uahl8qsau.apps.googleusercontent.com';
 const MONGO_URI = (process.env.MONGO_URI && process.env.MONGO_URI.trim()) || 'mongodb+srv://vaibhavkeshari495_db_user:8yysFuy2pC1nMp7i@cluster0.bkynzi0.mongodb.net/auth_db?retryWrites=true&w=majority&appName=Cluster0';
+
+const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 app.use(cors());
 app.use(express.json());
@@ -116,6 +120,10 @@ app.post('/api/login', async (req, res) => {
       return res.status(401).json({ success: false, message: 'Invalid email or password.' });
     }
 
+    if (!user.password) {
+      return res.status(400).json({ success: false, message: 'This account uses Google Sign In. Please click "Log in with Google".' });
+    }
+
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(401).json({ success: false, message: 'Invalid email or password.' });
@@ -134,12 +142,66 @@ app.post('/api/login', async (req, res) => {
         firstName: user.firstName,
         middleName: user.middleName,
         lastName: user.lastName,
-        email: user.email
+        email: user.email,
+        avatar: user.avatar || ''
       }
     });
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ success: false, message: 'Server error. Please try again later.' });
+  }
+});
+
+app.post('/api/google-auth', async (req, res) => {
+  try {
+    const { credential } = req.body;
+    if (!credential) {
+      return res.status(400).json({ success: false, message: 'Google credential missing.' });
+    }
+
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: GOOGLE_CLIENT_ID
+    });
+    const payload = ticket.getPayload();
+    const { email, given_name, family_name, picture, sub } = payload;
+
+    let user = await User.findOne({ email: email.toLowerCase().trim() });
+    if (user) {
+      if (!user.googleId) {
+        user.googleId = sub;
+        if (!user.avatar && picture) user.avatar = picture;
+        await user.save();
+      }
+    } else {
+      user = new User({
+        firstName: given_name || 'Google User',
+        lastName: family_name || '',
+        email: email.toLowerCase().trim(),
+        googleId: sub,
+        avatar: picture || ''
+      });
+      await user.save();
+    }
+
+    const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '30d' });
+
+    res.json({
+      success: true,
+      message: 'Signed in with Google successfully!',
+      token,
+      user: {
+        id: user._id,
+        firstName: user.firstName,
+        middleName: user.middleName || '',
+        lastName: user.lastName || '',
+        email: user.email,
+        avatar: user.avatar || ''
+      }
+    });
+  } catch (error) {
+    console.error('Google auth error:', error);
+    res.status(500).json({ success: false, message: 'Google authentication failed.' });
   }
 });
 

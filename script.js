@@ -5,6 +5,8 @@
     ? ''
     : 'http://localhost:3000';
 
+  const GOOGLE_CLIENT_ID = '475693894846-vo3m578joq2folkmt2qbnn2uahl8qsau.apps.googleusercontent.com';
+
   const allEyesDivs = document.querySelectorAll('[data-eyes]');
   const allPupils = document.querySelectorAll('.pupil');
   const formsSlider = document.getElementById('formsSlider');
@@ -17,9 +19,12 @@
   const dashboardView = document.getElementById('dashboardView');
   const userName = document.getElementById('userName');
   const userEmail = document.getElementById('userEmail');
+  const userAvatar = document.getElementById('userAvatar');
   const logoutBtn = document.getElementById('logoutBtn');
   const loginBtn = document.getElementById('loginBtn');
   const signupBtn = document.getElementById('signupBtn');
+  const googleBtn = document.getElementById('googleBtn');
+  const googleSignupBtn = document.getElementById('googleSignupBtn');
   const rememberCheckbox = document.getElementById('remember');
 
   let peekActive = false;
@@ -37,6 +42,13 @@
   function showDashboard(user) {
     userName.textContent = user.firstName || 'User';
     userEmail.textContent = user.email || '';
+    if (userAvatar) {
+      if (user.avatar) {
+        userAvatar.innerHTML = `<img src="${user.avatar}" alt="Avatar" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" />`;
+      } else {
+        userAvatar.textContent = '✦';
+      }
+    }
     formsSlider.style.display = 'none';
     dashboardView.style.display = 'block';
   }
@@ -272,4 +284,63 @@
       signupBtn.textContent = 'Create account';
     }
   });
+
+  async function handleGoogleResponse(response) {
+    if (!response || !response.credential) {
+      showAlert('Google sign in failed. Please try again.');
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/api/google-auth`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credential: response.credential })
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        clearAuthData();
+        localStorage.setItem('auth_token', data.token);
+        localStorage.setItem('auth_user', JSON.stringify(data.user));
+        localStorage.setItem('auth_expiry', (Date.now() + 30 * 24 * 60 * 60 * 1000).toString());
+
+        showAlert(data.message || 'Signed in with Google!', 'success');
+        showDashboard(data.user);
+      } else {
+        showAlert(data.message || 'Google authentication failed.');
+      }
+    } catch (err) {
+      showAlert('Unable to connect to server. Please ensure backend is running.');
+    }
+  }
+
+  function initGoogleAuth() {
+    if (window.google && window.google.accounts && window.google.accounts.id) {
+      window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: handleGoogleResponse,
+        auto_select: false
+      });
+    }
+  }
+
+  window.addEventListener('load', () => {
+    setTimeout(initGoogleAuth, 500);
+  });
+
+  function triggerGoogleSignIn() {
+    if (window.google && window.google.accounts && window.google.accounts.id) {
+      window.google.accounts.id.prompt((notification) => {
+        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+          showAlert('Please enable third-party cookies or popups for Google Sign-In.');
+        }
+      });
+    } else {
+      showAlert('Google services are still loading. Please try again in a moment.');
+    }
+  }
+
+  if (googleBtn) googleBtn.addEventListener('click', triggerGoogleSignIn);
+  if (googleSignupBtn) googleSignupBtn.addEventListener('click', triggerGoogleSignIn);
 })();

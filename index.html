@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
   <div id="alertBox" class="alert-box" role="alert" aria-live="polite"></div>
@@ -45,7 +46,7 @@
     <section class="right-panel">
       <div class="forms-container">
         <div id="dashboardView" class="dashboard-card" style="display:none;">
-          <div class="dashboard-avatar">✦</div>
+          <div class="dashboard-avatar" id="userAvatar">✦</div>
           <h2>Welcome, <span id="userName">User</span>!</h2>
           <p class="subtitle" id="userEmail">you@example.com</p>
           <div class="dashboard-info">
