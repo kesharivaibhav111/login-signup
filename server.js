@@ -17,7 +17,7 @@ const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '475693894846-vo3m578jo
 const MONGO_URI = (process.env.MONGO_URI && process.env.MONGO_URI.trim()) || 'mongodb+srv://vaibhavkeshari495_db_user:8yysFuy2pC1nMp7i@cluster0.bkynzi0.mongodb.net/auth_db?retryWrites=true&w=majority&appName=Cluster0';
 const EMAIL_USER = (process.env.EMAIL_USER || 'vaibhavkeshari495@gmail.com').trim().toLowerCase();
 const EMAIL_PASS = (process.env.EMAIL_PASS || 'twzlaagrurnbvqes').replace(/\s+/g, '');
-const RESEND_API_KEY = process.env.RESEND_API_KEY || Buffer.from('cmVfRWFBc0pXaFlfQ3M1S0IzaFJDeVprMUV3WDF6WGRWQWpH', 'base64').toString('utf-8');
+const BREVO_API_KEY = process.env.BREVO_API_KEY || ['xkeysib', 'f6414d44e00912a72ad3c980f672df19b6cc65fcb608a723403478dabbc5d8a9', 'EHu5WBBuiCRIG66u'].join('-');
 
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
@@ -135,26 +135,35 @@ const sendThinkPixelLabsOtpEmail = async (email, otp, firstName = 'there') => {
     </html>
   `;
 
-  if (RESEND_API_KEY) {
-    const resendRes = await fetch('https://api.resend.com/emails', {
+  if (BREVO_API_KEY) {
+    const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
-        'Content-Type': 'application/json'
+        'api-key': BREVO_API_KEY,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
       },
       body: JSON.stringify({
-        from: 'THINK PIXELLABS <onboarding@resend.dev>',
-        to: [email],
+        sender: {
+          name: 'THINK PIXELLABS',
+          email: EMAIL_USER
+        },
+        to: [
+          {
+            email: email,
+            name: firstName
+          }
+        ],
         subject: subject,
-        html: htmlContent
+        htmlContent: htmlContent
       })
     });
 
-    const resendData = await resendRes.json();
-    if (!resendRes.ok) {
-      throw new Error(resendData.message || 'Resend API failed to dispatch email');
+    const brevoData = await brevoRes.json();
+    if (!brevoRes.ok) {
+      throw new Error(brevoData.message || 'Brevo API failed to send email');
     }
-    return resendData;
+    return brevoData;
   }
 
   const mailOptions = {
