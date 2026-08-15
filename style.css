@@ -41,10 +41,13 @@ body {
 .right-panel {
   flex: 1 1 50%;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 2rem 2rem 4rem 2rem;
+  padding: 2.5rem 2rem 5rem 2rem;
   position: relative;
+  width: 100%;
+  box-sizing: border-box;
 }
 .characters-scene {
   position: relative;
@@ -172,9 +175,10 @@ body {
 }
 .auth-card-container {
   width: 100%;
-  max-width: 400px;
+  max-width: 380px;
   position: relative;
   margin: 0 auto;
+  box-sizing: border-box;
 }
 .auth-view {
   display: none;
@@ -358,16 +362,20 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 1.5rem;
+  gap: 8px;
+  margin-bottom: 1.35rem;
   font-size: .84rem;
+  width: 100%;
 }
 .remember-label {
   display: flex;
   align-items: center;
-  gap: .4rem;
+  gap: .45rem;
   cursor: pointer;
   color: var(--text-secondary);
   user-select: none;
+  font-size: 0.82rem;
+  white-space: nowrap;
 }
 .remember-label input[type="checkbox"] {
   accent-color: var(--accent);
@@ -381,6 +389,8 @@ body {
   font-weight: 600;
   text-decoration: none;
   transition: color var(--transition);
+  font-size: 0.82rem;
+  white-space: nowrap;
 }
 .forgot-link:hover { color: var(--purple); }
 .btn {
@@ -531,11 +541,14 @@ body {
   left: 0;
   right: 0;
   text-align: center;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-weight: 500;
   color: var(--text-secondary);
   pointer-events: auto;
   user-select: none;
+  padding: 0 1rem;
+  box-sizing: border-box;
+  width: 100%;
 }
 .site-credit a {
   color: var(--text-primary);
@@ -559,32 +572,92 @@ body {
   50% { transform: scale(1.22); }
 }
 @media (max-width: 900px) {
-  .split { flex-direction: column; }
-  .left-panel {
-    min-height: 260px;
-    flex: 0 0 auto;
-    padding: 1.5rem;
+  .split {
+    flex-direction: column;
+    min-height: 100dvh;
+    display: flex;
   }
-  .characters-scene { width: 320px; height: 260px; }
-  .char-purple { width: 75px; height: 100px; left: 25px; bottom: 40px; border-radius: 14px; }
-  .char-orange { width: 95px; height: 48px; right: 30px; bottom: 40px; }
-  .char-yellow { width: 70px; height: 95px; left: 120px; bottom: 40px; }
-  .char-teal { width: 55px; height: 55px; right: 55px; bottom: 105px; }
-  .ground { bottom: 38px; }
-  .right-panel { padding: 2rem 1.25rem 2.5rem 1.25rem; }
-  .auth-card-container { max-width: 100%; }
-  .site-credit { position: static; margin-top: 2.5rem; }
+  .left-panel {
+    min-height: 170px;
+    max-height: 200px;
+    flex: 0 0 auto;
+    padding: 1rem;
+  }
+  .characters-scene {
+    width: 260px;
+    height: 160px;
+  }
+  .char-purple { width: 55px; height: 75px; left: 15px; bottom: 25px; border-radius: 12px; }
+  .char-orange { width: 75px; height: 38px; right: 20px; bottom: 25px; }
+  .char-yellow { width: 55px; height: 75px; left: 85px; bottom: 25px; }
+  .char-teal { width: 42px; height: 42px; right: 50px; bottom: 75px; }
+  .ground { bottom: 23px; }
+  .right-panel {
+    padding: 1.75rem 1.25rem 2rem 1.25rem;
+    flex: 1 1 auto;
+    width: 100%;
+    min-height: auto;
+    justify-content: flex-start;
+    display: flex;
+    flex-direction: column;
+  }
+  .auth-card-container {
+    max-width: 100%;
+    width: 100%;
+    margin-bottom: auto;
+  }
+  .site-credit {
+    position: relative;
+    bottom: auto;
+    margin-top: 2.5rem;
+    margin-bottom: 1rem;
+    padding: 0;
+  }
 }
 @media (max-width: 480px) {
-  .login-form h1, .signup-form h1 { font-size: 1.45rem; }
-  .characters-scene { width: 280px; height: 220px; }
-  .char-purple { width: 60px; height: 80px; left: 15px; bottom: 30px; }
-  .char-orange { width: 80px; height: 40px; right: 15px; bottom: 30px; }
-  .char-yellow { width: 58px; height: 80px; left: 100px; bottom: 30px; }
-  .char-teal { width: 45px; height: 45px; right: 40px; bottom: 90px; }
-  .ground { bottom: 28px; }
-  .name-row { flex-direction: column; gap: 0; }
-  .otp-boxes-wrapper { gap: 4px; }
-  .otp-digit { width: 40px; height: 48px; font-size: 1.3rem; }
-  .alert-box { top: 12px; right: 12px; left: 12px; max-width: none; text-align: center; }
+  .login-form h1, .signup-form h1 {
+    font-size: 1.55rem;
+    white-space: nowrap;
+  }
+  .login-form .subtitle {
+    font-size: 0.88rem;
+    margin-bottom: 1.25rem;
+  }
+  .form-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    margin-bottom: 1.25rem;
+  }
+  .remember-label {
+    font-size: 0.78rem;
+  }
+  .forgot-link {
+    font-size: 0.78rem;
+  }
+  .name-row {
+    flex-direction: column;
+    gap: 0;
+  }
+  .otp-boxes-wrapper {
+    gap: 5px;
+  }
+  .otp-digit {
+    width: 42px;
+    height: 48px;
+    font-size: 1.3rem;
+  }
+  .alert-box {
+    top: 12px;
+    right: 12px;
+    left: 12px;
+    max-width: none;
+    text-align: center;
+  }
+  .site-credit {
+    font-size: 0.78rem;
+    margin-top: 2rem;
+  }
 }
