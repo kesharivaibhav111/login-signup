@@ -21,11 +21,16 @@ const EMAIL_PASS = (process.env.EMAIL_PASS || 'twzlaagrurnbvqes').replace(/\s+/g
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: 'smtp.gmail.com',
+  port: 465,
+  secure: true,
   auth: {
     user: EMAIL_USER,
     pass: EMAIL_PASS
-  }
+  },
+  connectionTimeout: 8000,
+  greetingTimeout: 5000,
+  socketTimeout: 10000
 });
 
 app.use(cors());
@@ -153,11 +158,6 @@ app.post('/api/send-otp', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long.' });
     }
 
-    const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
-    if (existingUser) {
-      return res.status(409).json({ success: false, message: 'An account with this email already exists.' });
-    }
-
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
 
     await Otp.deleteMany({ email: email.toLowerCase().trim() });
@@ -175,7 +175,7 @@ app.post('/api/send-otp', async (req, res) => {
       console.error('❌ Mail deliver error:', mailErr);
       return res.status(500).json({
         success: false,
-        message: `Failed to send email: ${mailErr.message || 'SMTP Error'}`
+        message: `Email sending failed: ${mailErr.message || 'SMTP Error'}`
       });
     }
 
@@ -210,37 +210,41 @@ app.post('/api/verify-otp-signup', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid or expired OTP. Please check your code or request a new one.' });
     }
 
-    const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
-    if (existingUser) {
-      return res.status(409).json({ success: false, message: 'An account with this email already exists.' });
-    }
-
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    const newUser = new User({
-      firstName: firstName.trim(),
-      middleName: middleName ? middleName.trim() : '',
-      lastName: lastName.trim(),
-      email: email.toLowerCase().trim(),
-      password: hashedPassword
-    });
+    let user = await User.findOne({ email: email.toLowerCase().trim() });
+    if (user) {
+      user.firstName = firstName.trim();
+      user.middleName = middleName ? middleName.trim() : '';
+      user.lastName = lastName.trim();
+      user.password = hashedPassword;
+      await user.save();
+    } else {
+      user = new User({
+        firstName: firstName.trim(),
+        middleName: middleName ? middleName.trim() : '',
+        lastName: lastName.trim(),
+        email: email.toLowerCase().trim(),
+        password: hashedPassword
+      });
+      await user.save();
+    }
 
-    await newUser.save();
     await Otp.deleteMany({ email: email.toLowerCase().trim() });
 
-    const token = jwt.sign({ userId: newUser._id }, JWT_SECRET, { expiresIn: '30d' });
+    const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '30d' });
 
     res.status(201).json({
       success: true,
       message: 'Email verified! Account created successfully.',
       token,
       user: {
-        id: newUser._id,
-        firstName: newUser.firstName,
-        middleName: newUser.middleName,
-        lastName: newUser.lastName,
-        email: newUser.email
+        id: user._id,
+        firstName: user.firstName,
+        middleName: user.middleName || '',
+        lastName: user.lastName || '',
+        email: user.email
       }
     });
   } catch (error) {
