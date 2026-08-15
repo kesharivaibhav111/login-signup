@@ -70,7 +70,6 @@ const sendThinkPixelLabsOtpEmail = async (email, otp, firstName = 'there') => {
     from: `"THINK PIXELLABS" <${EMAIL_USER}>`,
     to: email,
     subject: `Your Verification Code: ${otp} — THINK PIXELLABS`,
-    text: `Welcome to THINK PIXELLABS!\n\nYour 6-digit verification code is: ${otp}\n\nThis code is valid for 10 minutes.\n\nVisit: https://thinkpixellabs.com`,
     priority: 'high',
     html: `
       <!DOCTYPE html>
@@ -104,7 +103,7 @@ const sendThinkPixelLabsOtpEmail = async (email, otp, firstName = 'there') => {
                       Hi <strong>${firstName}</strong>,
                     </p>
                     <p style="margin:0 0 24px 0;font-size:15px;color:#94a3b8;line-height:1.6;">
-                      Thank you for choosing <strong>THINK PIXELLABS</strong>! Please enter the following 6-digit one-time password (OTP) to verify your email and complete your registration:
+                      Thank you for choosing <strong>THINK PIXELLABS</strong>! Please enter the following 6-digit verification code to verify your email and complete your registration:
                     </p>
                     <div style="background-color:#0b0f19;border:1.5px dashed #8b5cf6;border-radius:14px;padding:22px 15px;text-align:center;margin:24px 0;box-shadow:0 0 25px rgba(139,92,246,0.15);">
                       <span style="font-family:'Courier New',Courier,monospace;font-size:36px;font-weight:800;letter-spacing:10px;color:#c084fc;display:inline-block;padding-left:10px;">
@@ -112,7 +111,7 @@ const sendThinkPixelLabsOtpEmail = async (email, otp, firstName = 'there') => {
                       </span>
                     </div>
                     <p style="margin:20px 0 0 0;font-size:13px;color:#64748b;line-height:1.5;text-align:center;">
-                      ⏱️ This OTP is valid for <strong>10 minutes</strong>. Never share this code with anyone.
+                      ⏱️ This OTP is valid for <strong>3 minutes</strong>. Never share this code with anyone.
                     </p>
                   </td>
                 </tr>

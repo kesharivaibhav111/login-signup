@@ -339,8 +339,8 @@
 
   function startOtpTimer() {
     if (otpTimerInterval) clearInterval(otpTimerInterval);
-    let secondsLeft = 60;
-    otpCountdown.textContent = '01:00';
+    let secondsLeft = 180;
+    otpCountdown.textContent = '03:00';
     otpTimerText.style.display = 'inline';
     resendOtpBtn.style.display = 'none';
 
