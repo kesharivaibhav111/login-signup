@@ -15,8 +15,8 @@ const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_key_login_2026';
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '475693894846-vo3m578joq2folkmt2qbnn2uahl8qsau.apps.googleusercontent.com';
 const MONGO_URI = (process.env.MONGO_URI && process.env.MONGO_URI.trim()) || 'mongodb+srv://vaibhavkeshari495_db_user:8yysFuy2pC1nMp7i@cluster0.bkynzi0.mongodb.net/auth_db?retryWrites=true&w=majority&appName=Cluster0';
-const EMAIL_USER = process.env.EMAIL_USER || 'vaibhavkeshari495@gmail.com';
-const EMAIL_PASS = process.env.EMAIL_PASS || 'twzlaagrurnbvqes';
+const EMAIL_USER = (process.env.EMAIL_USER || 'vaibhavkeshari495@gmail.com').trim().toLowerCase();
+const EMAIL_PASS = (process.env.EMAIL_PASS || 'twzlaagrurnbvqes').replace(/\s+/g, '');
 
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
@@ -168,9 +168,16 @@ app.post('/api/send-otp', async (req, res) => {
     });
     await newOtp.save();
 
-    sendThinkPixelLabsOtpEmail(email.toLowerCase().trim(), otpCode, firstName.trim()).catch(err => {
-      console.error('Async mail dispatch error:', err.message);
-    });
+    try {
+      await sendThinkPixelLabsOtpEmail(email.toLowerCase().trim(), otpCode, firstName.trim());
+      console.log(`✅ OTP email delivered to ${email.toLowerCase().trim()}`);
+    } catch (mailErr) {
+      console.error('❌ Mail deliver error:', mailErr);
+      return res.status(500).json({
+        success: false,
+        message: `Failed to send email: ${mailErr.message || 'SMTP Error'}`
+      });
+    }
 
     res.json({
       success: true,
@@ -178,7 +185,7 @@ app.post('/api/send-otp', async (req, res) => {
     });
   } catch (error) {
     console.error('Send OTP error:', error);
-    res.status(500).json({ success: false, message: 'Failed to send OTP email. Please try again.' });
+    res.status(500).json({ success: false, message: 'Failed to process OTP request.' });
   }
 });
 
@@ -365,9 +372,16 @@ app.post('/api/google-auth', async (req, res) => {
       });
       await newOtp.save();
 
-      sendThinkPixelLabsOtpEmail(email.toLowerCase().trim(), otpCode, given_name || 'there').catch(err => {
-        console.error('Async mail dispatch error (Google signup):', err.message);
-      });
+      try {
+        await sendThinkPixelLabsOtpEmail(email.toLowerCase().trim(), otpCode, given_name || 'there');
+        console.log(`✅ Google Signup OTP email delivered to ${email.toLowerCase().trim()}`);
+      } catch (mailErr) {
+        console.error('❌ Google signup mail deliver error:', mailErr);
+        return res.status(500).json({
+          success: false,
+          message: `Failed to send email: ${mailErr.message}`
+        });
+      }
 
       return res.json({
         success: true,
@@ -396,9 +410,11 @@ app.post('/api/google-auth', async (req, res) => {
       });
       await newOtp.save();
 
-      sendThinkPixelLabsOtpEmail(email.toLowerCase().trim(), otpCode, given_name || 'there').catch(err => {
-        console.error('Async mail dispatch error (Google login new user):', err.message);
-      });
+      try {
+        await sendThinkPixelLabsOtpEmail(email.toLowerCase().trim(), otpCode, given_name || 'there');
+      } catch (mailErr) {
+        console.error('❌ Google new user mail error:', mailErr);
+      }
 
       return res.json({
         success: true,
