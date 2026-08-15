@@ -70,6 +70,8 @@ const sendThinkPixelLabsOtpEmail = async (email, otp, firstName = 'there') => {
     from: `"THINK PIXELLABS" <${EMAIL_USER}>`,
     to: email,
     subject: `Your Verification Code: ${otp} — THINK PIXELLABS`,
+    text: `Welcome to THINK PIXELLABS!\n\nYour 6-digit verification code is: ${otp}\n\nThis code is valid for 10 minutes.\n\nVisit: https://thinkpixellabs.com`,
+    priority: 'high',
     html: `
       <!DOCTYPE html>
       <html>
