@@ -20,7 +20,7 @@ const EMAIL_PASS = process.env.EMAIL_PASS || 'twzlaagrurnbvqes';
 
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
-const transporter = nodemailer.createTransporter({
+const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
     user: EMAIL_USER,
