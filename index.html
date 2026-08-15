@@ -9,9 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
-    /* ─── Reset & Tokens ─────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
       --bg-left: #f0eee9;
       --bg-right: #ffffff;
@@ -26,14 +24,11 @@
       --shadow-btn: 0 1px 2px rgba(0,0,0,.08);
       --transition: .3s ease;
       --font: 'Inter', system-ui, -apple-system, sans-serif;
-
-      /* character colors */
       --purple: #8b5cf6;
       --orange: #f97316;
       --yellow: #facc15;
-      --teal:   #2dd4bf;
+      --teal: #2dd4bf;
     }
-
     html { font-size: 16px; }
     body {
       font-family: var(--font);
@@ -43,10 +38,7 @@
       background: var(--bg-right);
       overflow-x: hidden;
     }
-
-    /* ─── Split Layout ───────────────────────────────── */
     .split { display: flex; width: 100%; min-height: 100dvh; }
-
     .left-panel {
       flex: 1 1 50%;
       background: var(--bg-left);
@@ -57,7 +49,6 @@
       overflow: hidden;
       padding: 2rem;
     }
-
     .right-panel {
       flex: 1 1 50%;
       display: flex;
@@ -65,21 +56,15 @@
       justify-content: center;
       padding: 2rem;
     }
-
-    /* ─── Characters Canvas ──────────────────────────── */
     .characters-scene {
       position: relative;
       width: 400px;
       height: 380px;
     }
-
-    /* shared character base */
     .character {
       position: absolute;
       transition: transform var(--transition);
     }
-
-    /* --- Purple Rectangle --- */
     .char-purple {
       width: 100px;
       height: 130px;
@@ -89,8 +74,6 @@
       bottom: 60px;
     }
     .char-purple .eyes { top: 30px; left: 50%; transform: translateX(-50%); }
-
-    /* --- Orange Semi-circle --- */
     .char-orange {
       width: 120px;
       height: 60px;
@@ -100,8 +83,6 @@
       bottom: 60px;
     }
     .char-orange .eyes { top: 14px; left: 50%; transform: translateX(-50%); }
-
-    /* --- Yellow Arch --- */
     .char-yellow {
       width: 90px;
       height: 120px;
@@ -111,8 +92,6 @@
       bottom: 60px;
     }
     .char-yellow .eyes { top: 30px; left: 50%; transform: translateX(-50%); }
-
-    /* --- Teal Blob --- */
     .char-teal {
       width: 70px;
       height: 70px;
@@ -122,8 +101,6 @@
       bottom: 140px;
     }
     .char-teal .eyes { top: 20px; left: 50%; transform: translateX(-50%); }
-
-    /* ground line */
     .ground {
       position: absolute;
       bottom: 58px;
@@ -133,15 +110,12 @@
       background: #d5d0c8;
       border-radius: 2px;
     }
-
-    /* ─── Eyes System ─────────────────────────────────── */
     .eyes {
       position: absolute;
       display: flex;
       gap: 10px;
       pointer-events: none;
     }
-
     .eye {
       width: 16px;
       height: 16px;
@@ -154,7 +128,6 @@
       overflow: visible;
       transition: background .3s ease;
     }
-
     .pupil {
       width: 7px;
       height: 7px;
@@ -163,8 +136,6 @@
       position: absolute;
       transition: transform 0.08s ease-out, opacity .25s ease;
     }
-
-    /* V-shape lines — always present, hidden by default */
     .eye::before,
     .eye::after {
       content: '';
@@ -177,21 +148,10 @@
       transition: opacity .3s ease, transform .3s ease;
       z-index: 3;
     }
-    .eye::before {
-      transform: translate(-2px, 0) rotate(0deg);
-    }
-    .eye::after {
-      transform: translate(2px, 0) rotate(0deg);
-    }
-
-    /* ─── Peek Mode: left eye V-close, right eye open ─ */
-    /* Left eye — background fades, pupil hides, V appears */
-    .eyes-peek .eye:first-child {
-      background: transparent;
-    }
-    .eyes-peek .eye:first-child .pupil {
-      opacity: 0;
-    }
+    .eye::before { transform: translate(-2px, 0) rotate(0deg); }
+    .eye::after { transform: translate(2px, 0) rotate(0deg); }
+    .eyes-peek .eye:first-child { background: transparent; }
+    .eyes-peek .eye:first-child .pupil { opacity: 0; }
     .eyes-peek .eye:first-child::before {
       opacity: 1;
       transform: translate(-2px, 1px) rotate(28deg);
@@ -200,36 +160,30 @@
       opacity: 1;
       transform: translate(2px, 1px) rotate(-28deg);
     }
-
-    /* ─── Subtle floating animations ─────────────────── */
-    .char-purple  { animation: float-1 4s ease-in-out infinite; }
-    .char-orange  { animation: float-2 5s ease-in-out infinite; }
-    .char-yellow  { animation: float-3 4.5s ease-in-out infinite; }
-    .char-teal    { animation: float-4 3.5s ease-in-out infinite; }
-
+    .char-purple { animation: float-1 4s ease-in-out infinite; }
+    .char-orange { animation: float-2 5s ease-in-out infinite; }
+    .char-yellow { animation: float-3 4.5s ease-in-out infinite; }
+    .char-teal { animation: float-4 3.5s ease-in-out infinite; }
     @keyframes float-1 {
       0%, 100% { transform: translateY(0); }
-      50%      { transform: translateY(-6px); }
+      50% { transform: translateY(-6px); }
     }
     @keyframes float-2 {
       0%, 100% { transform: translateY(0); }
-      50%      { transform: translateY(-4px); }
+      50% { transform: translateY(-4px); }
     }
     @keyframes float-3 {
       0%, 100% { transform: translateY(0); }
-      50%      { transform: translateY(-8px); }
+      50% { transform: translateY(-8px); }
     }
     @keyframes float-4 {
       0%, 100% { transform: translateY(0); }
-      50%      { transform: translateY(-5px); }
+      50% { transform: translateY(-5px); }
     }
-
-    /* ─── Login Form ─────────────────────────────────── */
     .login-form {
       width: 100%;
       max-width: 400px;
     }
-
     .login-form h1 {
       font-size: 1.75rem;
       font-weight: 700;
@@ -239,7 +193,6 @@
       align-items: center;
       gap: .45rem;
     }
-
     .star-icon {
       display: inline-flex;
       font-size: 1.1rem;
@@ -247,16 +200,13 @@
     }
     @keyframes twinkle {
       0%, 100% { opacity: 1; transform: scale(1) rotate(0deg); }
-      50%      { opacity: .6; transform: scale(.85) rotate(15deg); }
+      50% { opacity: .6; transform: scale(.85) rotate(15deg); }
     }
-
     .login-form .subtitle {
       color: var(--text-secondary);
       font-size: .95rem;
       margin-bottom: 1.75rem;
     }
-
-    /* input wrapper */
     .input-group {
       margin-bottom: 1rem;
       position: relative;
@@ -291,8 +241,6 @@
       background: #fff;
       box-shadow: 0 0 0 3px rgba(26,26,26,.08);
     }
-
-    /* password toggle */
     .pw-wrapper { position: relative; }
     .pw-toggle {
       position: absolute;
@@ -310,8 +258,6 @@
       transition: color var(--transition);
     }
     .pw-toggle:hover { color: var(--text-primary); }
-
-    /* row: remember + forgot */
     .form-row {
       display: flex;
       align-items: center;
@@ -341,8 +287,6 @@
       transition: color var(--transition);
     }
     .forgot-link:hover { color: var(--purple); }
-
-    /* buttons */
     .btn {
       width: 100%;
       padding: .78rem 1rem;
@@ -357,7 +301,6 @@
       justify-content: center;
       gap: .5rem;
     }
-
     .btn-primary {
       background: var(--accent);
       color: #fff;
@@ -370,7 +313,6 @@
       transform: translateY(-1px);
     }
     .btn-primary:active { transform: translateY(0); }
-
     .btn-google {
       background: #fff;
       color: var(--text-primary);
@@ -384,8 +326,6 @@
     }
     .btn-google:active { transform: translateY(0); }
     .btn-google svg { flex-shrink: 0; }
-
-    /* footer */
     .form-footer {
       text-align: center;
       margin-top: 1.75rem;
@@ -399,8 +339,6 @@
       transition: color var(--transition);
     }
     .form-footer a:hover { color: var(--purple); }
-
-    /* ─── Form Sliding Container ─────────────────────── */
     .forms-container {
       width: 100%;
       max-width: 400px;
@@ -412,33 +350,23 @@
       width: 200%;
       transition: transform .45s cubic-bezier(.4,.0,.2,1);
     }
-    .forms-slider.show-signup {
-      transform: translateX(-50%);
-    }
+    .forms-slider.show-signup { transform: translateX(-50%); }
     .form-panel {
       width: 50%;
       flex-shrink: 0;
       padding: 0 2px;
     }
-
-    /* ─── Name Row ────────────────────────────────────── */
     .name-row {
       display: flex;
       gap: .6rem;
     }
-    .name-row .input-group {
-      flex: 1;
-    }
-    .name-row .input-group.middle-name {
-      flex: 0.8;
-    }
+    .name-row .input-group { flex: 1; }
+    .name-row .input-group.middle-name { flex: 0.8; }
     .optional-tag {
       font-weight: 400;
       color: var(--text-secondary);
       font-size: .72rem;
     }
-
-    /* ─── Responsive ─────────────────────────────────── */
     @media (max-width: 900px) {
       .split { flex-direction: column; }
       .left-panel {
@@ -446,27 +374,22 @@
         flex: 0 0 auto;
         padding: 1.5rem;
       }
-      .characters-scene {
-        width: 320px;
-        height: 260px;
-      }
-      .char-purple  { width: 75px; height: 100px; left: 25px; bottom: 40px; border-radius: 14px; }
-      .char-orange  { width: 95px;  height: 48px; right: 30px; bottom: 40px; }
-      .char-yellow  { width: 70px;  height: 95px; left: 120px; bottom: 40px; }
-      .char-teal    { width: 55px;  height: 55px; right: 55px; bottom: 105px; }
+      .characters-scene { width: 320px; height: 260px; }
+      .char-purple { width: 75px; height: 100px; left: 25px; bottom: 40px; border-radius: 14px; }
+      .char-orange { width: 95px; height: 48px; right: 30px; bottom: 40px; }
+      .char-yellow { width: 70px; height: 95px; left: 120px; bottom: 40px; }
+      .char-teal { width: 55px; height: 55px; right: 55px; bottom: 105px; }
       .ground { bottom: 38px; }
-
       .right-panel { padding: 2rem 1.25rem; }
       .forms-container { max-width: 100%; }
     }
-
     @media (max-width: 480px) {
       .login-form h1, .signup-form h1 { font-size: 1.45rem; }
       .characters-scene { width: 280px; height: 220px; }
-      .char-purple  { width: 60px; height: 80px; left: 15px; bottom: 30px; }
-      .char-orange  { width: 80px; height: 40px; right: 15px; bottom: 30px; }
-      .char-yellow  { width: 58px; height: 80px; left: 100px; bottom: 30px; }
-      .char-teal    { width: 45px; height: 45px; right: 40px; bottom: 90px; }
+      .char-purple { width: 60px; height: 80px; left: 15px; bottom: 30px; }
+      .char-orange { width: 80px; height: 40px; right: 15px; bottom: 30px; }
+      .char-yellow { width: 58px; height: 80px; left: 100px; bottom: 30px; }
+      .char-teal { width: 45px; height: 45px; right: 40px; bottom: 90px; }
       .ground { bottom: 28px; }
       .name-row { flex-direction: column; gap: 0; }
     }
@@ -474,36 +397,27 @@
 </head>
 <body>
   <div class="split">
-    <!-- ── Left: Characters ───────────────────────── -->
     <section class="left-panel" aria-label="Decorative mascot characters">
       <div class="characters-scene" id="scene">
         <div class="ground"></div>
-
-        <!-- Purple Rectangle -->
         <div class="character char-purple" data-char>
           <div class="eyes" data-eyes>
             <div class="eye"><span class="pupil"></span></div>
             <div class="eye"><span class="pupil"></span></div>
           </div>
         </div>
-
-        <!-- Yellow Arch -->
         <div class="character char-yellow" data-char>
           <div class="eyes" data-eyes>
             <div class="eye"><span class="pupil"></span></div>
             <div class="eye"><span class="pupil"></span></div>
           </div>
         </div>
-
-        <!-- Teal Blob -->
         <div class="character char-teal" data-char>
           <div class="eyes" data-eyes>
             <div class="eye"><span class="pupil"></span></div>
             <div class="eye"><span class="pupil"></span></div>
           </div>
         </div>
-
-        <!-- Orange Semi-circle -->
         <div class="character char-orange" data-char>
           <div class="eyes" data-eyes>
             <div class="eye"><span class="pupil"></span></div>
@@ -512,23 +426,17 @@
         </div>
       </div>
     </section>
-
-    <!-- ── Right: Forms ────────────────────────────── -->
     <section class="right-panel">
       <div class="forms-container">
         <div class="forms-slider" id="formsSlider">
-
-          <!-- ── Login Form ── -->
           <div class="form-panel">
             <form class="login-form" id="loginForm" autocomplete="off" novalidate>
               <h1>Welcome back! <span class="star-icon" aria-hidden="true">✦</span></h1>
               <p class="subtitle">Please enter your details.</p>
-
               <div class="input-group">
                 <label for="loginEmail">Email</label>
                 <input type="email" id="loginEmail" placeholder="Enter your email" />
               </div>
-
               <div class="input-group">
                 <label for="loginPassword">Password</label>
                 <div class="pw-wrapper">
@@ -539,7 +447,6 @@
                   </button>
                 </div>
               </div>
-
               <div class="form-row">
                 <label class="remember-label">
                   <input type="checkbox" id="remember" />
@@ -547,24 +454,18 @@
                 </label>
                 <a href="#" class="forgot-link" id="forgotLink">Forgot password?</a>
               </div>
-
               <button type="submit" class="btn btn-primary" id="loginBtn">Log in</button>
-
               <button type="button" class="btn btn-google" id="googleBtn">
                 <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59a14.5 14.5 0 0 1 0-9.18l-7.98-6.19a24.01 24.01 0 0 0 0 21.56l7.98-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
                 Log in with Google
               </button>
-
               <p class="form-footer">Don't have an account? <a href="#" id="signupLink">Sign up</a></p>
             </form>
           </div>
-
-          <!-- ── Signup Form ── -->
           <div class="form-panel">
             <form class="login-form signup-form" id="signupForm" autocomplete="off" novalidate>
               <h1>Create account <span class="star-icon" aria-hidden="true">✦</span></h1>
               <p class="subtitle">Fill in your details to get started.</p>
-
               <div class="name-row">
                 <div class="input-group">
                   <label for="firstName">First name</label>
@@ -579,12 +480,10 @@
                   <input type="text" id="lastName" placeholder="Doe" required />
                 </div>
               </div>
-
               <div class="input-group">
                 <label for="signupEmail">Email</label>
                 <input type="email" id="signupEmail" placeholder="you@example.com" required />
               </div>
-
               <div class="input-group">
                 <label for="signupPassword">Password</label>
                 <div class="pw-wrapper">
@@ -595,7 +494,6 @@
                   </button>
                 </div>
               </div>
-
               <div class="input-group">
                 <label for="confirmPassword">Confirm password</label>
                 <div class="pw-wrapper">
@@ -606,149 +504,108 @@
                   </button>
                 </div>
               </div>
-
               <button type="submit" class="btn btn-primary" id="signupBtn" style="margin-top:.5rem">Create account</button>
-
               <button type="button" class="btn btn-google" id="googleSignupBtn">
                 <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59a14.5 14.5 0 0 1 0-9.18l-7.98-6.19a24.01 24.01 0 0 0 0 21.56l7.98-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
                 Sign up with Google
               </button>
-
               <p class="form-footer">Already have an account? <a href="#" id="loginLink">Log in</a></p>
             </form>
           </div>
-
         </div>
       </div>
     </section>
   </div>
-
   <script>
-    (() => {
+    (()=>{
       'use strict';
+      const allEyesDivs=document.querySelectorAll('[data-eyes]');
+      const allPupils=document.querySelectorAll('.pupil');
+      const formsSlider=document.getElementById('formsSlider');
+      const loginForm=document.getElementById('loginForm');
+      const signupForm=document.getElementById('signupForm');
+      const signupLink=document.getElementById('signupLink');
+      const loginLink=document.getElementById('loginLink');
+      const allPwInputs=document.querySelectorAll('.pw-input');
+      let peekActive=false;
 
-      /* ── DOM refs ──────────────────────────────── */
-      const allEyesDivs   = document.querySelectorAll('[data-eyes]');
-      const allPupils     = document.querySelectorAll('.pupil');
-      const formsSlider   = document.getElementById('formsSlider');
-      const loginForm     = document.getElementById('loginForm');
-      const signupForm    = document.getElementById('signupForm');
-      const signupLink    = document.getElementById('signupLink');
-      const loginLink     = document.getElementById('loginLink');
-
-      // All password inputs (login + signup)
-      const allPwInputs   = document.querySelectorAll('.pw-input');
-
-      /* ── State ─────────────────────────────────── */
-      let peekActive = false;
-
-      /* ── Form Switching ─────────────────────────── */
-      signupLink.addEventListener('click', e => {
+      signupLink.addEventListener('click',e=>{
         e.preventDefault();
         formsSlider.classList.add('show-signup');
         setPeek(false);
         resetAllToggles();
       });
-      loginLink.addEventListener('click', e => {
+      loginLink.addEventListener('click',e=>{
         e.preventDefault();
         formsSlider.classList.remove('show-signup');
         setPeek(false);
         resetAllToggles();
       });
 
-      /* ── Password show/hide (all toggles) ────────── */
-      document.querySelectorAll('.pw-toggle').forEach(btn => {
-        btn.addEventListener('mousedown', e => e.preventDefault());
-
-        btn.addEventListener('click', () => {
-          const targetId = btn.dataset.pwToggle;
-          const input = document.getElementById(targetId);
-          const iconOpen   = btn.querySelector('.eye-icon-open');
-          const iconClosed = btn.querySelector('.eye-icon-closed');
-
-          const isPassword = input.type === 'password';
-          input.type = isPassword ? 'text' : 'password';
-          iconOpen.style.display   = isPassword ? 'none'  : 'block';
-          iconClosed.style.display = isPassword ? 'block' : 'none';
-
-          // Sync mascot eyes
-          if (isPassword) {
-            setPeek(false);
-          } else {
-            setPeek(true);
-          }
-
+      document.querySelectorAll('.pw-toggle').forEach(btn=>{
+        btn.addEventListener('mousedown',e=>e.preventDefault());
+        btn.addEventListener('click',()=>{
+          const input=document.getElementById(btn.dataset.pwToggle);
+          const iconOpen=btn.querySelector('.eye-icon-open');
+          const iconClosed=btn.querySelector('.eye-icon-closed');
+          const isPassword=input.type==='password';
+          input.type=isPassword?'text':'password';
+          iconOpen.style.display=isPassword?'none':'block';
+          iconClosed.style.display=isPassword?'block':'none';
+          setPeek(!isPassword);
           input.focus();
         });
       });
 
-      function resetAllToggles() {
-        document.querySelectorAll('.pw-input').forEach(input => {
-          input.type = 'password';
-        });
-        document.querySelectorAll('.pw-toggle').forEach(btn => {
-          btn.querySelector('.eye-icon-open').style.display = 'block';
-          btn.querySelector('.eye-icon-closed').style.display = 'none';
+      function resetAllToggles(){
+        document.querySelectorAll('.pw-input').forEach(i=>{i.type='password';});
+        document.querySelectorAll('.pw-toggle').forEach(b=>{
+          b.querySelector('.eye-icon-open').style.display='block';
+          b.querySelector('.eye-icon-closed').style.display='none';
         });
       }
 
-      /* ── Peek helper ────────────────────────────── */
-      function setPeek(on) {
-        peekActive = on;
-        allEyesDivs.forEach(div => {
-          div.classList.toggle('eyes-peek', on);
+      function setPeek(on){
+        peekActive=on;
+        allEyesDivs.forEach(d=>d.classList.toggle('eyes-peek',on));
+      }
+
+      const MAX_OFFSET=3.5;
+      function movePupils(cx,cy){
+        allPupils.forEach(p=>{
+          if(peekActive&&p.closest('.eye:first-child'))return;
+          const e=p.parentElement;
+          const r=e.getBoundingClientRect();
+          const ex=r.left+r.width/2;
+          const ey=r.top+r.height/2;
+          const dx=cx-ex,dy=cy-ey;
+          const a=Math.atan2(dy,dx);
+          const d=Math.min(Math.hypot(dx,dy)*0.04,MAX_OFFSET);
+          p.style.transform=`translate(${Math.cos(a)*d}px,${Math.sin(a)*d}px)`;
         });
       }
 
-      /* ── Eye-tracking logic (ALWAYS active) ─────── */
-      const MAX_OFFSET = 3.5;
+      document.addEventListener('mousemove',e=>movePupils(e.clientX,e.clientY));
+      document.addEventListener('touchmove',e=>{
+        if(e.touches.length)movePupils(e.touches[0].clientX,e.touches[0].clientY);
+      },{passive:true});
 
-      function movePupils(clientX, clientY) {
-        allPupils.forEach(pupil => {
-          if (peekActive && pupil.closest('.eye:first-child')) return;
-
-          const eye  = pupil.parentElement;
-          const rect = eye.getBoundingClientRect();
-          const cx   = rect.left + rect.width  / 2;
-          const cy   = rect.top  + rect.height / 2;
-
-          const dx = clientX - cx;
-          const dy = clientY - cy;
-          const angle = Math.atan2(dy, dx);
-          const dist  = Math.min(Math.hypot(dx, dy) * 0.04, MAX_OFFSET);
-
-          const tx = Math.cos(angle) * dist;
-          const ty = Math.sin(angle) * dist;
-          pupil.style.transform = `translate(${tx}px, ${ty}px)`;
-        });
-      }
-
-      document.addEventListener('mousemove', e => movePupils(e.clientX, e.clientY));
-      document.addEventListener('touchmove', e => {
-        if (e.touches.length) movePupils(e.touches[0].clientX, e.touches[0].clientY);
-      }, { passive: true });
-
-      /* ── Password focus/blur (all pw inputs) ────── */
-      allPwInputs.forEach(input => {
-        input.addEventListener('focus', () => setPeek(true));
-        input.addEventListener('blur', () => {
-          if (input.type === 'password') setPeek(false);
-        });
+      allPwInputs.forEach(input=>{
+        input.addEventListener('focus',()=>setPeek(true));
+        input.addEventListener('blur',()=>{if(input.type==='password')setPeek(false);});
       });
 
-      /* ── Prevent form submissions (no backend) ─── */
-      loginForm.addEventListener('submit', e => {
+      loginForm.addEventListener('submit',e=>{
         e.preventDefault();
-        const btn = document.getElementById('loginBtn');
-        btn.textContent = 'Logging in…';
-        setTimeout(() => { btn.textContent = 'Log in'; }, 1500);
+        const btn=document.getElementById('loginBtn');
+        btn.textContent='Logging in…';
+        setTimeout(()=>{btn.textContent='Log in';},1500);
       });
-
-      signupForm.addEventListener('submit', e => {
+      signupForm.addEventListener('submit',e=>{
         e.preventDefault();
-        const btn = document.getElementById('signupBtn');
-        btn.textContent = 'Creating…';
-        setTimeout(() => { btn.textContent = 'Create account'; }, 1500);
+        const btn=document.getElementById('signupBtn');
+        btn.textContent='Creating…';
+        setTimeout(()=>{btn.textContent='Create account';},1500);
       });
     })();
   </script>
