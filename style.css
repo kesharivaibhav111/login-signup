@@ -230,7 +230,15 @@ body {
   background: #fff;
   box-shadow: 0 0 0 3px rgba(26,26,26,.08);
 }
-.pw-wrapper { position: relative; }
+.pw-wrapper {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+.pw-wrapper input {
+  padding-right: 2.75rem !important;
+}
 .pw-toggle {
   position: absolute;
   right: .75rem;
@@ -241,10 +249,12 @@ body {
   cursor: pointer;
   color: var(--text-secondary);
   font-size: 1.15rem;
-  padding: 2px;
+  padding: 4px;
   display: flex;
   align-items: center;
+  justify-content: center;
   transition: color var(--transition);
+  z-index: 10;
 }
 .pw-toggle:hover { color: var(--text-primary); }
 .form-row {
@@ -464,4 +474,3 @@ body {
   .name-row { flex-direction: column; gap: 0; }
   .alert-box { top: 12px; right: 12px; left: 12px; max-width: none; text-align: center; }
 }
-

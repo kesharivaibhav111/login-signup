@@ -1,7 +1,6 @@
 (()=>{
   'use strict';
 
-  // API Base URL (Supports localhost and deployed backend)
   const API_BASE = window.location.origin.includes('http') && !window.location.origin.includes('github.io')
     ? ''
     : 'http://localhost:3000';
@@ -26,7 +25,6 @@
   let peekActive = false;
   let alertTimer = null;
 
-  // ─── Alert / Toast Helper ───────────────────────
   function showAlert(message, type = 'error') {
     if (alertTimer) clearTimeout(alertTimer);
     alertBox.textContent = message;
@@ -36,7 +34,6 @@
     }, 4500);
   }
 
-  // ─── Dashboard Helper ───────────────────────────
   function showDashboard(user) {
     userName.textContent = user.firstName || 'User';
     userEmail.textContent = user.email || '';
@@ -58,7 +55,6 @@
   }
 
   function getStoredToken() {
-    // Check 30-day expiry first
     const expiry = localStorage.getItem('auth_expiry');
     if (expiry && Date.now() > parseInt(expiry, 10)) {
       clearAuthData();
@@ -68,7 +64,6 @@
     return localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
   }
 
-  // Check existing session on load
   async function checkAuthSession() {
     const token = getStoredToken();
     if (!token) return;
@@ -87,7 +82,6 @@
         }
       }
     } catch (e) {
-      // Offline/offline check - keep dashboard if token exists
       const savedUser = localStorage.getItem('auth_user') || sessionStorage.getItem('auth_user');
       if (savedUser) {
         try { showDashboard(JSON.parse(savedUser)); } catch(_) {}
@@ -96,7 +90,6 @@
   }
   checkAuthSession();
 
-  // ─── Form Switching ─────────────────────────────
   signupLink.addEventListener('click', e => {
     e.preventDefault();
     formsSlider.classList.add('show-signup');
@@ -117,11 +110,11 @@
     showAlert('Logged out successfully.', 'success');
   });
 
-  // ─── Password Toggle ────────────────────────────
   document.querySelectorAll('.pw-toggle').forEach(btn => {
     btn.addEventListener('mousedown', e => e.preventDefault());
     btn.addEventListener('click', () => {
       const input = document.getElementById(btn.dataset.pwToggle);
+      if (!input) return;
       const iconOpen = btn.querySelector('.eye-icon-open');
       const iconClosed = btn.querySelector('.eye-icon-closed');
       const isPassword = input.type === 'password';
@@ -146,7 +139,6 @@
     allEyesDivs.forEach(d => d.classList.toggle('eyes-peek', on));
   }
 
-  // ─── Eye Tracking ───────────────────────────────
   const MAX_OFFSET = 3.5;
   function movePupils(cx, cy) {
     allPupils.forEach(p => {
@@ -172,7 +164,6 @@
     input.addEventListener('blur', () => { if (input.type === 'password') setPeek(false); });
   });
 
-  // ─── Backend API: Login ─────────────────────────
   loginForm.addEventListener('submit', async e => {
     e.preventDefault();
     const email = document.getElementById('loginEmail').value.trim();
@@ -198,12 +189,10 @@
       if (data.success) {
         clearAuthData();
         if (rememberMe) {
-          // Store in localStorage for 30 days
           localStorage.setItem('auth_token', data.token);
           localStorage.setItem('auth_user', JSON.stringify(data.user));
           localStorage.setItem('auth_expiry', (Date.now() + 30 * 24 * 60 * 60 * 1000).toString());
         } else {
-          // Session storage (cleared when browser closed)
           sessionStorage.setItem('auth_token', data.token);
           sessionStorage.setItem('auth_user', JSON.stringify(data.user));
         }
@@ -222,7 +211,6 @@
     }
   });
 
-  // ─── Backend API: Signup ────────────────────────
   signupForm.addEventListener('submit', async e => {
     e.preventDefault();
     const firstName = document.getElementById('firstName').value.trim();
@@ -238,7 +226,7 @@
     }
 
     if (password !== confirmPassword) {
-      showAlert('Passwords do not match.');
+      showAlert('Passwords do not match. Please re-enter.');
       return;
     }
 

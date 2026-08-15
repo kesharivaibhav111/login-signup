@@ -10,15 +10,12 @@ const User = require('./models/User');
 const app = express();
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_key_login_2026';
+const MONGO_URI = (process.env.MONGO_URI && process.env.MONGO_URI.trim()) || 'mongodb+srv://vaibhavkeshari495_db_user:8yysFuy2pC1nMp7i@cluster0.bkynzi0.mongodb.net/auth_db?retryWrites=true&w=majority&appName=Cluster0';
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname)));
 
-const MONGO_URI = (process.env.MONGO_URI && process.env.MONGO_URI.trim()) || 'mongodb+srv://vaibhavkeshari495_db_user:8yysFuy2pC1nMp7i@cluster0.bkynzi0.mongodb.net/auth_db?retryWrites=true&w=majority&appName=Cluster0';
-
-// MongoDB Connection with Auto-Retry
 const connectDB = async () => {
   try {
     await mongoose.connect(MONGO_URI, {
@@ -33,7 +30,6 @@ const connectDB = async () => {
 };
 connectDB();
 
-// JWT Auth Middleware
 const authMiddleware = (req, res, next) => {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -53,14 +49,11 @@ const authMiddleware = (req, res, next) => {
   }
 };
 
-// ─── API Routes ───────────────────────────────────────
-
-// 1. Signup Route
 app.post('/api/signup', async (req, res) => {
   try {
     const { firstName, middleName, lastName, email, password, confirmPassword } = req.body;
 
-    if (!firstName || !lastName || !email || !password) {
+    if (!firstName || !lastName || !email || !password || !confirmPassword) {
       return res.status(400).json({ success: false, message: 'Please fill in all required fields.' });
     }
 
@@ -72,7 +65,7 @@ app.post('/api/signup', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long.' });
     }
 
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
     if (existingUser) {
       return res.status(409).json({ success: false, message: 'An account with this email already exists.' });
     }
@@ -110,7 +103,6 @@ app.post('/api/signup', async (req, res) => {
   }
 });
 
-// 2. Login Route (Supports 30 Days Remember Me)
 app.post('/api/login', async (req, res) => {
   try {
     const { email, password, rememberMe } = req.body;
@@ -129,7 +121,6 @@ app.post('/api/login', async (req, res) => {
       return res.status(401).json({ success: false, message: 'Invalid email or password.' });
     }
 
-    // 30 days if rememberMe checked, else 1 day session
     const tokenExpiry = rememberMe ? '30d' : '1d';
     const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: tokenExpiry });
 
@@ -152,7 +143,6 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// 3. Current User Route (Protected)
 app.get('/api/me', authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.userId).select('-password');
@@ -166,12 +156,10 @@ app.get('/api/me', authMiddleware, async (req, res) => {
   }
 });
 
-// Serve frontend on root
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Start Server
 app.listen(PORT, () => {
   console.log(` Server is running on http://localhost:${PORT}`);
 });
