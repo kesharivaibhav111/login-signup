@@ -173,13 +173,6 @@ app.post('/api/forgot-password', async (req, res) => {
       return res.status(404).json({ success: false, message: 'No account found with this email.' });
     }
 
-    if (!user.password && user.googleId) {
-      return res.status(400).json({
-        success: false,
-        message: 'This account is registered via Google Sign In. Please use "Log in with Google" instead.'
-      });
-    }
-
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(newPassword, salt);
     await user.save();
