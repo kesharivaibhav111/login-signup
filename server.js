@@ -16,12 +16,22 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname)));
 
-// MongoDB Connection
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log(' Connected to MongoDB Atlas successfully!'))
-  .catch((err) => {
+const MONGO_URI = (process.env.MONGO_URI && process.env.MONGO_URI.trim()) || 'mongodb+srv://vaibhavkeshari495_db_user:8yysFuy2pC1nMp7i@cluster0.bkynzi0.mongodb.net/auth_db?retryWrites=true&w=majority&appName=Cluster0';
+
+// MongoDB Connection with Auto-Retry
+const connectDB = async () => {
+  try {
+    await mongoose.connect(MONGO_URI, {
+      serverSelectionTimeoutMS: 30000,
+    });
+    console.log(' Connected to MongoDB Atlas successfully!');
+  } catch (err) {
     console.error('❌ MongoDB Connection Error:', err.message);
-  });
+    console.log('⏳ Retrying MongoDB connection in 5 seconds...');
+    setTimeout(connectDB, 5000);
+  }
+};
+connectDB();
 
 // JWT Auth Middleware
 const authMiddleware = (req, res, next) => {
