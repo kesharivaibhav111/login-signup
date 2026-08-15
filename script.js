@@ -346,7 +346,7 @@
         formsSlider.classList.add('show-otp');
         startOtpTimer();
         otpInput.value = '';
-        otpInput.focus();
+        setTimeout(() => otpInput.focus(), 300);
         showAlert(data.message || 'OTP sent! Please check your email.', 'success');
       } else {
         showAlert(data.message || 'Failed to send verification code.');
@@ -366,8 +366,7 @@
       resendOtpBtn.textContent = 'Sending…';
 
       try {
-        const endpoint = pendingSignupData.isGoogle ? `${API_BASE}/api/send-otp` : `${API_BASE}/api/send-otp`;
-        const res = await fetch(endpoint, {
+        const res = await fetch(`${API_BASE}/api/send-otp`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -539,7 +538,7 @@
         formsSlider.classList.add('show-otp');
         startOtpTimer();
         otpInput.value = '';
-        otpInput.focus();
+        setTimeout(() => otpInput.focus(), 300);
         showAlert(data.message || 'OTP sent to your Google email! Please verify to complete signup.', 'success');
       } else if (data.success) {
         clearAuthData();

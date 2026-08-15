@@ -266,11 +266,13 @@ body {
 }
 .otp-input {
   text-align: center !important;
-  font-size: 1.5rem !important;
-  font-weight: 700 !important;
-  letter-spacing: 10px !important;
+  font-size: 1.6rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 12px !important;
   padding: 0.85rem 1rem !important;
-  background: #f8f7f4 !important;
+  background: #fff !important;
+  border: 2px solid var(--purple) !important;
+  box-shadow: 0 0 0 3px rgba(139,92,246,0.15) !important;
 }
 .otp-timer-row {
   display: flex;
