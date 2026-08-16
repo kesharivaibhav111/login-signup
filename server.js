@@ -29,16 +29,17 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "https://accounts.google.com", "https://apis.google.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://accounts.google.com", "https://apis.google.com", "https://*.google.com"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       imgSrc: ["'self'", "data:", "https:", "http:"],
-      connectSrc: ["'self'", "https://accounts.google.com", "https://www.googleapis.com", "https://api.brevo.com", "http://localhost:3000", "http://localhost:5000", "https://login-signup-esv8.onrender.com"],
-      frameSrc: ["'self'", "https://accounts.google.com"],
+      connectSrc: ["'self'", "https://accounts.google.com", "https://www.googleapis.com", "https://*.googleapis.com", "https://api.brevo.com", "http://localhost:3000", "http://localhost:5000", "https://login-signup-esv8.onrender.com"],
+      frameSrc: ["'self'", "https://accounts.google.com", "https://*.google.com"],
       objectSrc: ["'none'"],
       upgradeInsecureRequests: []
     }
   },
+  crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
   crossOriginEmbedderPolicy: false,
   crossOriginResourcePolicy: false
 }));
@@ -584,10 +585,21 @@ app.post('/api/google-auth', async (req, res) => {
     let user = await User.findOne({ email: cleanEmail });
 
     if (user) {
-      if (!user.googleId) {
+      let needsSave = false;
+      if (!user.googleId && sub) {
         user.googleId = sub;
-        if (!user.avatar && picture) user.avatar = picture;
-        await user.save();
+        needsSave = true;
+      }
+      if (!user.avatar && picture) {
+        user.avatar = picture;
+        needsSave = true;
+      }
+      if (needsSave) {
+        try {
+          await user.save();
+        } catch (saveErr) {
+          console.error('User save warning:', saveErr.message);
+        }
       }
 
       const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '30d' });
@@ -598,7 +610,7 @@ app.post('/api/google-auth', async (req, res) => {
         token,
         user: {
           id: user._id,
-          firstName: user.firstName,
+          firstName: user.firstName || 'User',
           middleName: user.middleName || '',
           lastName: user.lastName || '',
           email: user.email,
