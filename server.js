@@ -201,8 +201,8 @@ app.post('/api/send-otp', async (req, res) => {
     }
 
     const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
-    if (existingUser) {
-      return res.status(409).json({ success: false, message: 'An account with this email already exists. Please log in.' });
+    if (existingUser && existingUser.password) {
+      return res.status(409).json({ success: false, message: 'An account with this email already exists. Please log in or reset password.' });
     }
 
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
@@ -257,22 +257,26 @@ app.post('/api/verify-otp-signup', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid or expired OTP. Please check your code or request a new one.' });
     }
 
-    const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
-    if (existingUser) {
-      return res.status(409).json({ success: false, message: 'An account with this email already exists. Please log in.' });
-    }
-
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    const user = new User({
-      firstName: firstName.trim(),
-      middleName: middleName ? middleName.trim() : '',
-      lastName: lastName.trim(),
-      email: email.toLowerCase().trim(),
-      password: hashedPassword
-    });
-    await user.save();
+    let user = await User.findOne({ email: email.toLowerCase().trim() });
+    if (user) {
+      user.firstName = firstName.trim();
+      user.middleName = middleName ? middleName.trim() : user.middleName || '';
+      user.lastName = lastName.trim() || user.lastName || '';
+      user.password = hashedPassword;
+      await user.save();
+    } else {
+      user = new User({
+        firstName: firstName.trim(),
+        middleName: middleName ? middleName.trim() : '',
+        lastName: lastName.trim(),
+        email: email.toLowerCase().trim(),
+        password: hashedPassword
+      });
+      await user.save();
+    }
 
     await Otp.deleteMany({ email: email.toLowerCase().trim() });
 
@@ -280,7 +284,7 @@ app.post('/api/verify-otp-signup', async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: 'Email verified! Account created successfully.',
+      message: 'Email verified! Password set and account active.',
       token,
       user: {
         id: user._id,
@@ -307,10 +311,6 @@ app.post('/api/forgot-password-otp', async (req, res) => {
     const user = await User.findOne({ email: email.toLowerCase().trim() });
     if (!user) {
       return res.status(404).json({ success: false, message: 'No account found with this email address.' });
-    }
-
-    if (!user.password) {
-      return res.status(400).json({ success: false, message: 'This account uses Google Sign In. Please click "Log in with Google".' });
     }
 
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
@@ -431,7 +431,7 @@ app.post('/api/login', async (req, res) => {
     }
 
     if (!user.password) {
-      return res.status(400).json({ success: false, message: 'This account uses Google Sign In. Please click "Log in with Google".' });
+      return res.status(400).json({ success: false, message: 'Password not set yet. Please log in with Google, or click "Forgot password?" to create a password.' });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
