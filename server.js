@@ -192,6 +192,11 @@ app.post('/api/send-otp', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long.' });
     }
 
+    const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
+    if (existingUser) {
+      return res.status(409).json({ success: false, message: 'An account with this email already exists. Please log in.' });
+    }
+
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
 
     await Otp.deleteMany({ email: email.toLowerCase().trim() });
@@ -244,26 +249,22 @@ app.post('/api/verify-otp-signup', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid or expired OTP. Please check your code or request a new one.' });
     }
 
+    const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
+    if (existingUser) {
+      return res.status(409).json({ success: false, message: 'An account with this email already exists. Please log in.' });
+    }
+
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    let user = await User.findOne({ email: email.toLowerCase().trim() });
-    if (user) {
-      user.firstName = firstName.trim();
-      user.middleName = middleName ? middleName.trim() : '';
-      user.lastName = lastName.trim();
-      user.password = hashedPassword;
-      await user.save();
-    } else {
-      user = new User({
-        firstName: firstName.trim(),
-        middleName: middleName ? middleName.trim() : '',
-        lastName: lastName.trim(),
-        email: email.toLowerCase().trim(),
-        password: hashedPassword
-      });
-      await user.save();
-    }
+    const user = new User({
+      firstName: firstName.trim(),
+      middleName: middleName ? middleName.trim() : '',
+      lastName: lastName.trim(),
+      email: email.toLowerCase().trim(),
+      password: hashedPassword
+    });
+    await user.save();
 
     await Otp.deleteMany({ email: email.toLowerCase().trim() });
 
@@ -369,7 +370,7 @@ app.post('/api/forgot-password', async (req, res) => {
 
 app.post('/api/google-auth', async (req, res) => {
   try {
-    const { credential, accessToken, action } = req.body;
+    const { credential, accessToken } = req.body;
     let email, given_name, family_name, picture, sub;
 
     if (accessToken) {
@@ -400,94 +401,63 @@ app.post('/api/google-auth', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Google authentication token missing.' });
     }
 
-    if (action === 'signup') {
-      const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-      await Otp.deleteMany({ email: email.toLowerCase().trim() });
-
-      const newOtp = new Otp({
-        email: email.toLowerCase().trim(),
-        otp: otpCode
-      });
-      await newOtp.save();
-
-      try {
-        await sendThinkPixelLabsOtpEmail(email.toLowerCase().trim(), otpCode, given_name || 'there');
-        console.log(`✅ Google Signup OTP email delivered to ${email.toLowerCase().trim()}`);
-      } catch (mailErr) {
-        console.error('❌ Google signup mail deliver error:', mailErr);
-        return res.status(500).json({
-          success: false,
-          message: `Failed to send email: ${mailErr.message}`
-        });
-      }
-
-      return res.json({
-        success: true,
-        requireOtp: true,
-        message: `OTP sent to ${email.toLowerCase().trim()}`,
-        googleUser: {
-          firstName: given_name || 'Google User',
-          middleName: '',
-          lastName: family_name || '',
-          email: email.toLowerCase().trim(),
-          googleId: sub,
-          avatar: picture || ''
-        }
-      });
-    }
-
     let user = await User.findOne({ email: email.toLowerCase().trim() });
 
-    if (!user) {
-      const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-      await Otp.deleteMany({ email: email.toLowerCase().trim() });
-
-      const newOtp = new Otp({
-        email: email.toLowerCase().trim(),
-        otp: otpCode
-      });
-      await newOtp.save();
-
-      try {
-        await sendThinkPixelLabsOtpEmail(email.toLowerCase().trim(), otpCode, given_name || 'there');
-      } catch (mailErr) {
-        console.error('❌ Google new user mail error:', mailErr);
+    if (user) {
+      if (!user.googleId) {
+        user.googleId = sub;
+        if (!user.avatar && picture) user.avatar = picture;
+        await user.save();
       }
+
+      const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '30d' });
 
       return res.json({
         success: true,
-        requireOtp: true,
-        message: `Account not found. OTP sent to ${email.toLowerCase().trim()} to create your account!`,
-        googleUser: {
-          firstName: given_name || 'Google User',
-          middleName: '',
-          lastName: family_name || '',
-          email: email.toLowerCase().trim(),
-          googleId: sub,
-          avatar: picture || ''
+        message: 'Welcome back! Signed in with Google.',
+        token,
+        user: {
+          id: user._id,
+          firstName: user.firstName,
+          middleName: user.middleName || '',
+          lastName: user.lastName || '',
+          email: user.email,
+          avatar: user.avatar || ''
         }
       });
     }
 
-    if (!user.googleId) {
-      user.googleId = sub;
-      if (!user.avatar && picture) user.avatar = picture;
-      await user.save();
-    }
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    await Otp.deleteMany({ email: email.toLowerCase().trim() });
 
-    const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '30d' });
+    const newOtp = new Otp({
+      email: email.toLowerCase().trim(),
+      otp: otpCode
+    });
+    await newOtp.save();
+
+    try {
+      await sendThinkPixelLabsOtpEmail(email.toLowerCase().trim(), otpCode, given_name || 'there');
+      console.log(`✅ Google Signup OTP email delivered to ${email.toLowerCase().trim()}`);
+    } catch (mailErr) {
+      console.error('❌ Google signup mail deliver error:', mailErr);
+      return res.status(500).json({
+        success: false,
+        message: `Failed to send email: ${mailErr.message}`
+      });
+    }
 
     return res.json({
       success: true,
-      message: 'Signed in with Google successfully!',
-      token,
-      user: {
-        id: user._id,
-        firstName: user.firstName,
-        middleName: user.middleName || '',
-        lastName: user.lastName || '',
-        email: user.email,
-        avatar: user.avatar || ''
+      requireOtp: true,
+      message: `OTP sent to ${email.toLowerCase().trim()} to activate your account.`,
+      googleUser: {
+        firstName: given_name || 'Google User',
+        middleName: '',
+        lastName: family_name || '',
+        email: email.toLowerCase().trim(),
+        googleId: sub,
+        avatar: picture || ''
       }
     });
   } catch (error) {
