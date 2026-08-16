@@ -2,8 +2,12 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const helmet = require('helmet');
+const mongoSanitize = require('express-mongo-sanitize');
+const rateLimit = require('express-rate-limit');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const path = require('path');
 const nodemailer = require('nodemailer');
 const { OAuth2Client } = require('google-auth-library');
@@ -12,14 +16,90 @@ const Otp = require('./models/Otp');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_key_login_2026';
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '475693894846-vo3m578joq2folkmt2qbnn2uahl8qsau.apps.googleusercontent.com';
+const JWT_SECRET = (process.env.JWT_SECRET && process.env.JWT_SECRET.trim()) || 'fallback_secret_key_login_2026';
+const GOOGLE_CLIENT_ID = (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_ID.trim()) || '475693894846-vo3m578joq2folkmt2qbnn2uahl8qsau.apps.googleusercontent.com';
 const MONGO_URI = (process.env.MONGO_URI && process.env.MONGO_URI.trim()) || 'mongodb+srv://vaibhavkeshari495_db_user:8yysFuy2pC1nMp7i@cluster0.bkynzi0.mongodb.net/auth_db?retryWrites=true&w=majority&appName=Cluster0';
 const EMAIL_USER = (process.env.EMAIL_USER || 'vaibhavkeshari495@gmail.com').trim().toLowerCase();
 const EMAIL_PASS = (process.env.EMAIL_PASS || 'twzlaagrurnbvqes').replace(/\s+/g, '');
 const BREVO_API_KEY = process.env.BREVO_API_KEY || ['xkeysib', 'f6414d44e00912a72ad3c980f672df19b6cc65fcb608a723403478dabbc5d8a9', 'EHu5WBBuiCRIG66u'].join('-');
 
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
+
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://accounts.google.com", "https://apis.google.com"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:", "https:", "http:"],
+      connectSrc: ["'self'", "https://accounts.google.com", "https://www.googleapis.com", "https://api.brevo.com", "http://localhost:3000", "http://localhost:5000", "https://login-signup-esv8.onrender.com"],
+      frameSrc: ["'self'", "https://accounts.google.com"],
+      objectSrc: ["'none'"],
+      upgradeInsecureRequests: []
+    }
+  },
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: false
+}));
+
+const allowedOrigins = [
+  'https://login-signup-esv8.onrender.com',
+  'https://thinkpixellabs.com',
+  'http://localhost:3000',
+  'http://localhost:5000',
+  'http://127.0.0.1:5500'
+];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(null, true);
+    }
+  },
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
+
+app.use(express.json({ limit: '15kb' }));
+app.use(mongoSanitize());
+app.use(express.static(path.join(__dirname)));
+
+const globalLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many requests. Please slow down.' }
+});
+app.use(globalLimiter);
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 15,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many attempts. Please try again after 15 minutes.' }
+});
+
+const otpSendLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 6,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many OTP requests. Please wait a few minutes before trying again.' }
+});
+
+app.use('/api/login', authLimiter);
+app.use('/api/verify-otp-signup', authLimiter);
+app.use('/api/verify-reset-otp', authLimiter);
+app.use('/api/verify-google-otp', authLimiter);
+app.use('/api/reset-password', authLimiter);
+app.use('/api/send-otp', otpSendLimiter);
+app.use('/api/forgot-password-otp', otpSendLimiter);
 
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
@@ -34,10 +114,6 @@ const transporter = nodemailer.createTransport({
   socketTimeout: 5000
 });
 
-app.use(cors());
-app.use(express.json());
-app.use(express.static(path.join(__dirname)));
-
 const connectDB = async () => {
   try {
     await mongoose.connect(MONGO_URI, {
@@ -46,7 +122,6 @@ const connectDB = async () => {
     console.log(' Connected to MongoDB Atlas successfully!');
   } catch (err) {
     console.error('❌ MongoDB Connection Error:', err.message);
-    console.log('⏳ Retrying MongoDB connection in 5 seconds...');
     setTimeout(connectDB, 5000);
   }
 };
@@ -69,6 +144,10 @@ const authMiddleware = (req, res, next) => {
     }
     return res.status(401).json({ success: false, message: 'Invalid token' });
   }
+};
+
+const generateSecureOtp = () => {
+  return crypto.randomInt(100000, 1000000).toString();
 };
 
 const sendThinkPixelLabsOtpEmail = async (email, otp, firstName = 'there', purpose = 'registration') => {
@@ -188,7 +267,7 @@ app.post('/api/send-otp', async (req, res) => {
   try {
     const { firstName, lastName, email, password, confirmPassword } = req.body;
 
-    if (!firstName || !lastName || !email || !password || !confirmPassword) {
+    if (!firstName || !lastName || !email || !password || !confirmPassword || typeof email !== 'string') {
       return res.status(400).json({ success: false, message: 'Please fill in all required fields.' });
     }
 
@@ -200,35 +279,36 @@ app.post('/api/send-otp', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long.' });
     }
 
-    const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
+    const cleanEmail = email.toLowerCase().trim();
+    const existingUser = await User.findOne({ email: cleanEmail });
     if (existingUser && existingUser.password) {
       return res.status(409).json({ success: false, message: 'An account with this email already exists. Please log in or reset password.' });
     }
 
-    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpCode = generateSecureOtp();
 
-    await Otp.deleteMany({ email: email.toLowerCase().trim() });
+    await Otp.deleteMany({ email: cleanEmail });
 
     const newOtp = new Otp({
-      email: email.toLowerCase().trim(),
+      email: cleanEmail,
       otp: otpCode
     });
     await newOtp.save();
 
     try {
-      await sendThinkPixelLabsOtpEmail(email.toLowerCase().trim(), otpCode, firstName.trim(), 'registration');
-      console.log(`✅ OTP email successfully delivered to ${email.toLowerCase().trim()}`);
+      await sendThinkPixelLabsOtpEmail(cleanEmail, otpCode, String(firstName).trim(), 'registration');
+      console.log(`✅ OTP email successfully delivered to ${cleanEmail}`);
     } catch (mailErr) {
       console.error('❌ Mail dispatch error:', mailErr);
       return res.status(500).json({
         success: false,
-        message: `Email sending failed: ${mailErr.message}`
+        message: 'Unable to send verification email. Please try again in a few moments.'
       });
     }
 
     res.json({
       success: true,
-      message: `OTP sent to ${email.toLowerCase().trim()}`
+      message: `OTP sent to ${cleanEmail}`
     });
   } catch (error) {
     console.error('Send OTP error:', error);
@@ -240,7 +320,7 @@ app.post('/api/verify-otp-signup', async (req, res) => {
   try {
     const { firstName, middleName, lastName, email, password, confirmPassword, otp } = req.body;
 
-    if (!firstName || !lastName || !email || !password || !otp) {
+    if (!firstName || !lastName || !email || !password || !otp || typeof email !== 'string' || typeof otp !== 'string') {
       return res.status(400).json({ success: false, message: 'Please fill in all fields including the OTP.' });
     }
 
@@ -248,8 +328,9 @@ app.post('/api/verify-otp-signup', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Passwords do not match.' });
     }
 
+    const cleanEmail = email.toLowerCase().trim();
     const otpRecord = await Otp.findOne({
-      email: email.toLowerCase().trim(),
+      email: cleanEmail,
       otp: otp.trim()
     });
 
@@ -260,25 +341,25 @@ app.post('/api/verify-otp-signup', async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    let user = await User.findOne({ email: email.toLowerCase().trim() });
+    let user = await User.findOne({ email: cleanEmail });
     if (user) {
-      user.firstName = firstName.trim();
-      user.middleName = middleName ? middleName.trim() : user.middleName || '';
-      user.lastName = lastName.trim() || user.lastName || '';
+      user.firstName = String(firstName).trim();
+      user.middleName = middleName ? String(middleName).trim() : user.middleName || '';
+      user.lastName = String(lastName).trim() || user.lastName || '';
       user.password = hashedPassword;
       await user.save();
     } else {
       user = new User({
-        firstName: firstName.trim(),
-        middleName: middleName ? middleName.trim() : '',
-        lastName: lastName.trim(),
-        email: email.toLowerCase().trim(),
+        firstName: String(firstName).trim(),
+        middleName: middleName ? String(middleName).trim() : '',
+        lastName: String(lastName).trim(),
+        email: cleanEmail,
         password: hashedPassword
       });
       await user.save();
     }
 
-    await Otp.deleteMany({ email: email.toLowerCase().trim() });
+    await Otp.deleteMany({ email: cleanEmail });
 
     const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '30d' });
 
@@ -304,39 +385,40 @@ app.post('/api/forgot-password-otp', async (req, res) => {
   try {
     const { email } = req.body;
 
-    if (!email) {
+    if (!email || typeof email !== 'string') {
       return res.status(400).json({ success: false, message: 'Please enter your email address.' });
     }
 
-    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    const cleanEmail = email.toLowerCase().trim();
+    const user = await User.findOne({ email: cleanEmail });
     if (!user) {
       return res.status(404).json({ success: false, message: 'No account found with this email address.' });
     }
 
-    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpCode = generateSecureOtp();
 
-    await Otp.deleteMany({ email: email.toLowerCase().trim() });
+    await Otp.deleteMany({ email: cleanEmail });
 
     const newOtp = new Otp({
-      email: email.toLowerCase().trim(),
+      email: cleanEmail,
       otp: otpCode
     });
     await newOtp.save();
 
     try {
-      await sendThinkPixelLabsOtpEmail(email.toLowerCase().trim(), otpCode, user.firstName || 'there', 'password reset');
-      console.log(`✅ Password Reset OTP email delivered to ${email.toLowerCase().trim()}`);
+      await sendThinkPixelLabsOtpEmail(cleanEmail, otpCode, user.firstName || 'there', 'password reset');
+      console.log(`✅ Password Reset OTP email delivered to ${cleanEmail}`);
     } catch (mailErr) {
       console.error('❌ Reset OTP mail error:', mailErr);
       return res.status(500).json({
         success: false,
-        message: `Email sending failed: ${mailErr.message}`
+        message: 'Unable to send password reset email. Please try again in a few moments.'
       });
     }
 
     res.json({
       success: true,
-      message: `Reset OTP sent to ${email.toLowerCase().trim()}`
+      message: `Reset OTP sent to ${cleanEmail}`
     });
   } catch (error) {
     console.error('Forgot password OTP error:', error);
@@ -348,12 +430,13 @@ app.post('/api/verify-reset-otp', async (req, res) => {
   try {
     const { email, otp } = req.body;
 
-    if (!email || !otp) {
+    if (!email || !otp || typeof email !== 'string' || typeof otp !== 'string') {
       return res.status(400).json({ success: false, message: 'Email and OTP code are required.' });
     }
 
+    const cleanEmail = email.toLowerCase().trim();
     const otpRecord = await Otp.findOne({
-      email: email.toLowerCase().trim(),
+      email: cleanEmail,
       otp: otp.trim()
     });
 
@@ -375,7 +458,7 @@ app.post('/api/reset-password', async (req, res) => {
   try {
     const { email, otp, newPassword, confirmNewPassword } = req.body;
 
-    if (!email || !otp || !newPassword || !confirmNewPassword) {
+    if (!email || !otp || !newPassword || !confirmNewPassword || typeof email !== 'string' || typeof otp !== 'string') {
       return res.status(400).json({ success: false, message: 'Please fill in all fields.' });
     }
 
@@ -387,8 +470,9 @@ app.post('/api/reset-password', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long.' });
     }
 
+    const cleanEmail = email.toLowerCase().trim();
     const otpRecord = await Otp.findOne({
-      email: email.toLowerCase().trim(),
+      email: cleanEmail,
       otp: otp.trim()
     });
 
@@ -396,7 +480,7 @@ app.post('/api/reset-password', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Verification session expired. Please request a new OTP.' });
     }
 
-    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    const user = await User.findOne({ email: cleanEmail });
     if (!user) {
       return res.status(404).json({ success: false, message: 'No account found with this email.' });
     }
@@ -405,7 +489,7 @@ app.post('/api/reset-password', async (req, res) => {
     user.password = await bcrypt.hash(newPassword, salt);
     await user.save();
 
-    await Otp.deleteMany({ email: email.toLowerCase().trim() });
+    await Otp.deleteMany({ email: cleanEmail });
 
     res.json({
       success: true,
@@ -421,11 +505,12 @@ app.post('/api/login', async (req, res) => {
   try {
     const { email, password, rememberMe } = req.body;
 
-    if (!email || !password) {
+    if (!email || !password || typeof email !== 'string') {
       return res.status(400).json({ success: false, message: 'Please provide both email and password.' });
     }
 
-    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    const cleanEmail = email.toLowerCase().trim();
+    const user = await User.findOne({ email: cleanEmail });
     if (!user) {
       return res.status(401).json({ success: false, message: 'Invalid email or password.' });
     }
@@ -495,7 +580,8 @@ app.post('/api/google-auth', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Google authentication token missing.' });
     }
 
-    let user = await User.findOne({ email: email.toLowerCase().trim() });
+    const cleanEmail = email.toLowerCase().trim();
+    let user = await User.findOne({ email: cleanEmail });
 
     if (user) {
       if (!user.googleId) {
@@ -521,35 +607,35 @@ app.post('/api/google-auth', async (req, res) => {
       });
     }
 
-    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-    await Otp.deleteMany({ email: email.toLowerCase().trim() });
+    const otpCode = generateSecureOtp();
+    await Otp.deleteMany({ email: cleanEmail });
 
     const newOtp = new Otp({
-      email: email.toLowerCase().trim(),
+      email: cleanEmail,
       otp: otpCode
     });
     await newOtp.save();
 
     try {
-      await sendThinkPixelLabsOtpEmail(email.toLowerCase().trim(), otpCode, given_name || 'there', 'registration');
-      console.log(`✅ Google Signup OTP email delivered to ${email.toLowerCase().trim()}`);
+      await sendThinkPixelLabsOtpEmail(cleanEmail, otpCode, given_name || 'there', 'registration');
+      console.log(`✅ Google Signup OTP email delivered to ${cleanEmail}`);
     } catch (mailErr) {
       console.error('❌ Google signup mail deliver error:', mailErr);
       return res.status(500).json({
         success: false,
-        message: `Failed to send email: ${mailErr.message}`
+        message: 'Unable to send verification email. Please try again in a few moments.'
       });
     }
 
     return res.json({
       success: true,
       requireOtp: true,
-      message: `OTP sent to ${email.toLowerCase().trim()} to activate your account.`,
+      message: `OTP sent to ${cleanEmail} to activate your account.`,
       googleUser: {
         firstName: given_name || 'Google User',
         middleName: '',
         lastName: family_name || '',
-        email: email.toLowerCase().trim(),
+        email: cleanEmail,
         googleId: sub,
         avatar: picture || ''
       }
@@ -564,12 +650,13 @@ app.post('/api/verify-google-otp', async (req, res) => {
   try {
     const { email, firstName, lastName, googleId, avatar, otp } = req.body;
 
-    if (!email || !otp) {
+    if (!email || !otp || typeof email !== 'string' || typeof otp !== 'string') {
       return res.status(400).json({ success: false, message: 'Email and OTP code are required.' });
     }
 
+    const cleanEmail = email.toLowerCase().trim();
     const otpRecord = await Otp.findOne({
-      email: email.toLowerCase().trim(),
+      email: cleanEmail,
       otp: otp.trim()
     });
 
@@ -577,12 +664,12 @@ app.post('/api/verify-google-otp', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid or expired OTP. Please check your code or request a new one.' });
     }
 
-    let user = await User.findOne({ email: email.toLowerCase().trim() });
+    let user = await User.findOne({ email: cleanEmail });
     if (!user) {
       user = new User({
         firstName: firstName || 'Google User',
         lastName: lastName || '',
-        email: email.toLowerCase().trim(),
+        email: cleanEmail,
         googleId: googleId || '',
         avatar: avatar || ''
       });
@@ -593,7 +680,7 @@ app.post('/api/verify-google-otp', async (req, res) => {
       await user.save();
     }
 
-    await Otp.deleteMany({ email: email.toLowerCase().trim() });
+    await Otp.deleteMany({ email: cleanEmail });
 
     const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '30d' });
 

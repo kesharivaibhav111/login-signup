@@ -73,8 +73,16 @@
     userName.textContent = user.firstName || 'User';
     userEmail.textContent = user.email || '';
     if (userAvatar) {
-      if (user.avatar) {
-        userAvatar.innerHTML = `<img src="${user.avatar}" alt="Avatar" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" />`;
+      userAvatar.textContent = '';
+      if (user.avatar && /^https?:\/\//i.test(user.avatar)) {
+        const img = document.createElement('img');
+        img.src = user.avatar;
+        img.alt = 'Avatar';
+        img.style.width = '100%';
+        img.style.height = '100%';
+        img.style.borderRadius = '50%';
+        img.style.objectFit = 'cover';
+        userAvatar.appendChild(img);
       } else {
         userAvatar.textContent = '✦';
       }
