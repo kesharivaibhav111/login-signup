@@ -141,6 +141,19 @@
           </form>
         </div>
 
+        <div id="forgotView" class="auth-view">
+          <form class="login-form forgot-form" id="forgotForm" autocomplete="off" novalidate>
+            <h1>Reset password <span class="star-icon" aria-hidden="true">✦</span></h1>
+            <p class="subtitle">Enter your email to receive a password reset OTP.</p>
+            <div class="input-group">
+              <label for="forgotEmail">Email</label>
+              <input type="email" id="forgotEmail" placeholder="Enter your registered email" required />
+            </div>
+            <button type="submit" class="btn btn-primary" id="sendForgotOtpBtn" style="margin-top:.75rem">Send Reset OTP</button>
+            <p class="form-footer">Remember your password? <a href="#" id="backToLoginLink">Log in</a></p>
+          </form>
+        </div>
+
         <div id="otpView" class="auth-view">
           <form class="login-form otp-form" id="otpForm" autocomplete="off" novalidate>
             <h1>Verify Email <span class="star-icon" aria-hidden="true">✦</span></h1>
@@ -159,19 +172,15 @@
               <span id="otpTimerText">Resend code in <strong id="otpCountdown">03:00</strong></span>
               <button type="button" id="resendOtpBtn" class="resend-btn" style="display:none;">Resend OTP</button>
             </div>
-            <button type="submit" class="btn btn-primary" id="verifyOtpBtn" style="margin-top:1.25rem;">Verify & Create Account</button>
-            <p class="form-footer"><a href="#" id="backToSignupLink">← Change details</a></p>
+            <button type="submit" class="btn btn-primary" id="verifyOtpBtn" style="margin-top:1.25rem;">Verify Code</button>
+            <p class="form-footer"><a href="#" id="backToSignupLink">← Back</a></p>
           </form>
         </div>
 
-        <div id="resetView" class="auth-view">
-          <form class="login-form reset-form" id="resetForm" autocomplete="off" novalidate>
-            <h1>Reset password <span class="star-icon" aria-hidden="true">✦</span></h1>
-            <p class="subtitle">Enter your email and new password.</p>
-            <div class="input-group">
-              <label for="resetEmail">Email</label>
-              <input type="email" id="resetEmail" placeholder="Enter your email" required />
-            </div>
+        <div id="newPasswordView" class="auth-view">
+          <form class="login-form new-password-form" id="newPasswordForm" autocomplete="off" novalidate>
+            <h1>Set new password <span class="star-icon" aria-hidden="true">✦</span></h1>
+            <p class="subtitle">Create a strong new password for your account.</p>
             <div class="input-group">
               <label for="newPassword">New password</label>
               <div class="pw-wrapper">
@@ -192,10 +201,11 @@
                 </button>
               </div>
             </div>
-            <button type="submit" class="btn btn-primary" id="resetBtn" style="margin-top:.75rem">Save new password</button>
-            <p class="form-footer">Remember your password? <a href="#" id="backToLoginLink">Log in</a></p>
+            <button type="submit" class="btn btn-primary" id="savePasswordBtn" style="margin-top:.75rem">Save new password</button>
+            <p class="form-footer"><a href="#" id="backToLoginFromNewPwLink">← Back to Log in</a></p>
           </form>
         </div>
+
       </div>
       <footer class="site-credit">
         Site Designed and Developed with <span class="heart-icon">💗</span> by <a href="https://thinkpixellabs.com" target="_blank" rel="noopener noreferrer">Think Pixel Labs</a>

@@ -71,8 +71,16 @@ const authMiddleware = (req, res, next) => {
   }
 };
 
-const sendThinkPixelLabsOtpEmail = async (email, otp, firstName = 'there') => {
-  const subject = `Your Verification Code: ${otp} — Think Pixel Labs`;
+const sendThinkPixelLabsOtpEmail = async (email, otp, firstName = 'there', purpose = 'registration') => {
+  const isReset = purpose === 'password reset';
+  const subject = isReset
+    ? `Your Password Reset Code: ${otp} — Think Pixel Labs`
+    : `Your Verification Code: ${otp} — Think Pixel Labs`;
+
+  const descriptionText = isReset
+    ? `We received a request to reset your password. Please enter the following 6-digit verification code to reset your password:`
+    : `Thank you for choosing <strong>Think Pixel Labs</strong>! Please enter the following 6-digit verification code to verify your email and complete your registration:`;
+
   const htmlContent = `
     <!DOCTYPE html>
     <html>
@@ -92,7 +100,7 @@ const sendThinkPixelLabsOtpEmail = async (email, otp, firstName = 'there') => {
                     ✦ THINK PIXEL LABS
                   </div>
                   <h1 style="margin:10px 0 6px 0;font-size:24px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;">
-                    Welcome to Think Pixel Labs
+                    ${isReset ? 'Password Reset Verification' : 'Welcome to Think Pixel Labs'}
                   </h1>
                   <p style="margin:0;font-size:14px;color:#94a3b8;">
                     Creative Digital Studio & Technology
@@ -105,7 +113,7 @@ const sendThinkPixelLabsOtpEmail = async (email, otp, firstName = 'there') => {
                     Hi <strong>${firstName}</strong>,
                   </p>
                   <p style="margin:0 0 24px 0;font-size:15px;color:#94a3b8;line-height:1.6;">
-                    Thank you for choosing <strong>Think Pixel Labs</strong>! Please enter the following 6-digit verification code to verify your email and complete your registration:
+                    ${descriptionText}
                   </p>
                   <div style="background-color:#0b0f19;border:1.5px dashed #8b5cf6;border-radius:14px;padding:22px 15px;text-align:center;margin:24px 0;box-shadow:0 0 25px rgba(139,92,246,0.15);">
                     <span style="font-family:'Courier New',Courier,monospace;font-size:36px;font-weight:800;letter-spacing:10px;color:#c084fc;display:inline-block;padding-left:10px;">
@@ -208,7 +216,7 @@ app.post('/api/send-otp', async (req, res) => {
     await newOtp.save();
 
     try {
-      await sendThinkPixelLabsOtpEmail(email.toLowerCase().trim(), otpCode, firstName.trim());
+      await sendThinkPixelLabsOtpEmail(email.toLowerCase().trim(), otpCode, firstName.trim(), 'registration');
       console.log(`✅ OTP email successfully delivered to ${email.toLowerCase().trim()}`);
     } catch (mailErr) {
       console.error('❌ Mail dispatch error:', mailErr);
@@ -288,6 +296,127 @@ app.post('/api/verify-otp-signup', async (req, res) => {
   }
 });
 
+app.post('/api/forgot-password-otp', async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Please enter your email address.' });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'No account found with this email address.' });
+    }
+
+    if (!user.password) {
+      return res.status(400).json({ success: false, message: 'This account uses Google Sign In. Please click "Log in with Google".' });
+    }
+
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+    await Otp.deleteMany({ email: email.toLowerCase().trim() });
+
+    const newOtp = new Otp({
+      email: email.toLowerCase().trim(),
+      otp: otpCode
+    });
+    await newOtp.save();
+
+    try {
+      await sendThinkPixelLabsOtpEmail(email.toLowerCase().trim(), otpCode, user.firstName || 'there', 'password reset');
+      console.log(`✅ Password Reset OTP email delivered to ${email.toLowerCase().trim()}`);
+    } catch (mailErr) {
+      console.error('❌ Reset OTP mail error:', mailErr);
+      return res.status(500).json({
+        success: false,
+        message: `Email sending failed: ${mailErr.message}`
+      });
+    }
+
+    res.json({
+      success: true,
+      message: `Reset OTP sent to ${email.toLowerCase().trim()}`
+    });
+  } catch (error) {
+    console.error('Forgot password OTP error:', error);
+    res.status(500).json({ success: false, message: 'Failed to process password reset request.' });
+  }
+});
+
+app.post('/api/verify-reset-otp', async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      return res.status(400).json({ success: false, message: 'Email and OTP code are required.' });
+    }
+
+    const otpRecord = await Otp.findOne({
+      email: email.toLowerCase().trim(),
+      otp: otp.trim()
+    });
+
+    if (!otpRecord) {
+      return res.status(400).json({ success: false, message: 'Invalid or expired OTP code. Please try again.' });
+    }
+
+    res.json({
+      success: true,
+      message: 'OTP verified successfully.'
+    });
+  } catch (error) {
+    console.error('Verify reset OTP error:', error);
+    res.status(500).json({ success: false, message: 'Server error during verification.' });
+  }
+});
+
+app.post('/api/reset-password', async (req, res) => {
+  try {
+    const { email, otp, newPassword, confirmNewPassword } = req.body;
+
+    if (!email || !otp || !newPassword || !confirmNewPassword) {
+      return res.status(400).json({ success: false, message: 'Please fill in all fields.' });
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      return res.status(400).json({ success: false, message: 'Passwords do not match.' });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long.' });
+    }
+
+    const otpRecord = await Otp.findOne({
+      email: email.toLowerCase().trim(),
+      otp: otp.trim()
+    });
+
+    if (!otpRecord) {
+      return res.status(400).json({ success: false, message: 'Verification session expired. Please request a new OTP.' });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'No account found with this email.' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+    await user.save();
+
+    await Otp.deleteMany({ email: email.toLowerCase().trim() });
+
+    res.json({
+      success: true,
+      message: 'Password reset successfully! Please log in with your new password.'
+    });
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({ success: false, message: 'Server error. Please try again later.' });
+  }
+});
+
 app.post('/api/login', async (req, res) => {
   try {
     const { email, password, rememberMe } = req.body;
@@ -329,41 +458,6 @@ app.post('/api/login', async (req, res) => {
     });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ success: false, message: 'Server error. Please try again later.' });
-  }
-});
-
-app.post('/api/forgot-password', async (req, res) => {
-  try {
-    const { email, newPassword, confirmNewPassword } = req.body;
-
-    if (!email || !newPassword || !confirmNewPassword) {
-      return res.status(400).json({ success: false, message: 'Please fill in all fields.' });
-    }
-
-    if (newPassword !== confirmNewPassword) {
-      return res.status(400).json({ success: false, message: 'Passwords do not match.' });
-    }
-
-    if (newPassword.length < 6) {
-      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long.' });
-    }
-
-    const user = await User.findOne({ email: email.toLowerCase().trim() });
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'No account found with this email.' });
-    }
-
-    const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(newPassword, salt);
-    await user.save();
-
-    res.json({
-      success: true,
-      message: 'Password reset successfully! Please log in with your new password.'
-    });
-  } catch (error) {
-    console.error('Forgot password error:', error);
     res.status(500).json({ success: false, message: 'Server error. Please try again later.' });
   }
 });
@@ -437,7 +531,7 @@ app.post('/api/google-auth', async (req, res) => {
     await newOtp.save();
 
     try {
-      await sendThinkPixelLabsOtpEmail(email.toLowerCase().trim(), otpCode, given_name || 'there');
+      await sendThinkPixelLabsOtpEmail(email.toLowerCase().trim(), otpCode, given_name || 'there', 'registration');
       console.log(`✅ Google Signup OTP email delivered to ${email.toLowerCase().trim()}`);
     } catch (mailErr) {
       console.error('❌ Google signup mail deliver error:', mailErr);

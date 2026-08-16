@@ -12,13 +12,15 @@
   const allViews = document.querySelectorAll('.auth-view');
   const loginForm = document.getElementById('loginForm');
   const signupForm = document.getElementById('signupForm');
+  const forgotForm = document.getElementById('forgotForm');
   const otpForm = document.getElementById('otpForm');
-  const resetForm = document.getElementById('resetForm');
+  const newPasswordForm = document.getElementById('newPasswordForm');
   const signupLink = document.getElementById('signupLink');
   const loginLink = document.getElementById('loginLink');
   const forgotLink = document.getElementById('forgotLink');
   const backToLoginLink = document.getElementById('backToLoginLink');
   const backToSignupLink = document.getElementById('backToSignupLink');
+  const backToLoginFromNewPwLink = document.getElementById('backToLoginFromNewPwLink');
   const allPwInputs = document.querySelectorAll('.pw-input');
   const alertBox = document.getElementById('alertBox');
   const userName = document.getElementById('userName');
@@ -27,9 +29,10 @@
   const logoutBtn = document.getElementById('logoutBtn');
   const loginBtn = document.getElementById('loginBtn');
   const signupBtn = document.getElementById('signupBtn');
+  const sendForgotOtpBtn = document.getElementById('sendForgotOtpBtn');
   const verifyOtpBtn = document.getElementById('verifyOtpBtn');
   const resendOtpBtn = document.getElementById('resendOtpBtn');
-  const resetBtn = document.getElementById('resetBtn');
+  const savePasswordBtn = document.getElementById('savePasswordBtn');
   const googleBtn = document.getElementById('googleBtn');
   const googleSignupBtn = document.getElementById('googleSignupBtn');
   const rememberCheckbox = document.getElementById('remember');
@@ -42,6 +45,9 @@
   let alertTimer = null;
   let googleTokenClient = null;
   let pendingSignupData = null;
+  let pendingResetEmail = '';
+  let verifiedResetOtp = '';
+  let otpMode = 'signup';
   let otpTimerInterval = null;
 
   function showAlert(message, type = 'error') {
@@ -134,10 +140,10 @@
     forgotLink.addEventListener('click', e => {
       e.preventDefault();
       const loginEmailVal = document.getElementById('loginEmail').value.trim();
-      if (loginEmailVal) {
-        document.getElementById('resetEmail').value = loginEmailVal;
+      if (loginEmailVal && document.getElementById('forgotEmail')) {
+        document.getElementById('forgotEmail').value = loginEmailVal;
       }
-      switchView('resetView');
+      switchView('forgotView');
     });
   }
 
@@ -151,7 +157,18 @@
   if (backToSignupLink) {
     backToSignupLink.addEventListener('click', e => {
       e.preventDefault();
-      switchView('signupView');
+      if (otpMode === 'forgot') {
+        switchView('forgotView');
+      } else {
+        switchView('signupView');
+      }
+    });
+  }
+
+  if (backToLoginFromNewPwLink) {
+    backToLoginFromNewPwLink.addEventListener('click', e => {
+      e.preventDefault();
+      switchView('loginView');
     });
   }
 
@@ -290,6 +307,27 @@
     });
   });
 
+  function startOtpTimer() {
+    if (otpTimerInterval) clearInterval(otpTimerInterval);
+    let secondsLeft = 180;
+    otpCountdown.textContent = '03:00';
+    otpTimerText.style.display = 'inline';
+    resendOtpBtn.style.display = 'none';
+
+    otpTimerInterval = setInterval(() => {
+      secondsLeft--;
+      const mins = String(Math.floor(secondsLeft / 60)).padStart(2, '0');
+      const secs = String(secondsLeft % 60).padStart(2, '0');
+      otpCountdown.textContent = `${mins}:${secs}`;
+
+      if (secondsLeft <= 0) {
+        clearInterval(otpTimerInterval);
+        otpTimerText.style.display = 'none';
+        resendOtpBtn.style.display = 'inline';
+      }
+    }, 1000);
+  }
+
   loginForm.addEventListener('submit', async e => {
     e.preventDefault();
     const email = document.getElementById('loginEmail').value.trim();
@@ -337,27 +375,6 @@
     }
   });
 
-  function startOtpTimer() {
-    if (otpTimerInterval) clearInterval(otpTimerInterval);
-    let secondsLeft = 180;
-    otpCountdown.textContent = '03:00';
-    otpTimerText.style.display = 'inline';
-    resendOtpBtn.style.display = 'none';
-
-    otpTimerInterval = setInterval(() => {
-      secondsLeft--;
-      const mins = String(Math.floor(secondsLeft / 60)).padStart(2, '0');
-      const secs = String(secondsLeft % 60).padStart(2, '0');
-      otpCountdown.textContent = `${mins}:${secs}`;
-
-      if (secondsLeft <= 0) {
-        clearInterval(otpTimerInterval);
-        otpTimerText.style.display = 'none';
-        resendOtpBtn.style.display = 'inline';
-      }
-    }, 1000);
-  }
-
   signupForm.addEventListener('submit', async e => {
     e.preventDefault();
     const firstName = document.getElementById('firstName').value.trim();
@@ -401,8 +418,10 @@
       const data = await res.json();
 
       if (data.success) {
+        otpMode = 'signup';
         pendingSignupData = { firstName, middleName, lastName, email, password, confirmPassword, isGoogle: false };
         otpEmailDisplay.textContent = email;
+        verifyOtpBtn.textContent = 'Verify & Create Account';
         switchView('otpView');
         startOtpTimer();
         clearOtpDigits();
@@ -419,33 +438,92 @@
     }
   });
 
+  if (forgotForm) {
+    forgotForm.addEventListener('submit', async e => {
+      e.preventDefault();
+      const email = document.getElementById('forgotEmail').value.trim();
+
+      if (!email) {
+        showAlert('Please enter your registered email address.');
+        return;
+      }
+
+      sendForgotOtpBtn.disabled = true;
+      sendForgotOtpBtn.textContent = 'Sending code…';
+
+      try {
+        const res = await fetch(`${API_BASE}/api/forgot-password-otp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          otpMode = 'forgot';
+          pendingResetEmail = email;
+          otpEmailDisplay.textContent = email;
+          verifyOtpBtn.textContent = 'Verify & Proceed';
+          switchView('otpView');
+          startOtpTimer();
+          clearOtpDigits();
+          focusFirstOtpDigit();
+          showAlert(data.message || 'Reset code sent to your email!', 'success');
+        } else {
+          showAlert(data.message || 'Failed to send reset code.');
+        }
+      } catch (err) {
+        showAlert('Unable to connect to server.');
+      } finally {
+        sendForgotOtpBtn.disabled = false;
+        sendForgotOtpBtn.textContent = 'Send Reset OTP';
+      }
+    });
+  }
+
   if (resendOtpBtn) {
     resendOtpBtn.addEventListener('click', async () => {
-      if (!pendingSignupData) return;
       resendOtpBtn.disabled = true;
       resendOtpBtn.textContent = 'Sending…';
 
       try {
-        const endpoint = `${API_BASE}/api/send-otp`;
-        const res = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            firstName: pendingSignupData.firstName,
-            lastName: pendingSignupData.lastName,
-            email: pendingSignupData.email,
-            password: pendingSignupData.password || 'google_auth_placeholder',
-            confirmPassword: pendingSignupData.password || 'google_auth_placeholder'
-          })
-        });
-        const data = await res.json();
-        if (data.success) {
-          startOtpTimer();
-          clearOtpDigits();
-          focusFirstOtpDigit();
-          showAlert('New OTP sent to your email!', 'success');
+        if (otpMode === 'forgot') {
+          const res = await fetch(`${API_BASE}/api/forgot-password-otp`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: pendingResetEmail })
+          });
+          const data = await res.json();
+          if (data.success) {
+            startOtpTimer();
+            clearOtpDigits();
+            focusFirstOtpDigit();
+            showAlert('New reset OTP sent to your email!', 'success');
+          } else {
+            showAlert(data.message || 'Failed to resend OTP.');
+          }
         } else {
-          showAlert(data.message || 'Failed to resend OTP.');
+          if (!pendingSignupData) return;
+          const res = await fetch(`${API_BASE}/api/send-otp`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              firstName: pendingSignupData.firstName,
+              lastName: pendingSignupData.lastName,
+              email: pendingSignupData.email,
+              password: pendingSignupData.password || 'google_auth_placeholder',
+              confirmPassword: pendingSignupData.password || 'google_auth_placeholder'
+            })
+          });
+          const data = await res.json();
+          if (data.success) {
+            startOtpTimer();
+            clearOtpDigits();
+            focusFirstOtpDigit();
+            showAlert('New OTP sent to your email!', 'success');
+          } else {
+            showAlert(data.message || 'Failed to resend OTP.');
+          }
         }
       } catch (err) {
         showAlert('Unable to connect to server.');
@@ -464,62 +542,81 @@
       return;
     }
 
-    if (!pendingSignupData) {
-      showAlert('Signup session expired. Please sign up again.');
-      switchView('signupView');
-      return;
-    }
-
     verifyOtpBtn.disabled = true;
     verifyOtpBtn.textContent = 'Verifying…';
 
     try {
-      const endpoint = pendingSignupData.isGoogle
-        ? `${API_BASE}/api/verify-google-otp`
-        : `${API_BASE}/api/verify-otp-signup`;
+      if (otpMode === 'forgot') {
+        const res = await fetch(`${API_BASE}/api/verify-reset-otp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: pendingResetEmail, otp })
+        });
+        const data = await res.json();
 
-      const payload = pendingSignupData.isGoogle
-        ? {
-            email: pendingSignupData.email,
-            firstName: pendingSignupData.firstName,
-            lastName: pendingSignupData.lastName,
-            googleId: pendingSignupData.googleId,
-            avatar: pendingSignupData.avatar,
-            otp
-          }
-        : {
-            ...pendingSignupData,
-            otp
-          };
-
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const data = await res.json();
-
-      if (data.success) {
-        clearAuthData();
-        localStorage.setItem('auth_token', data.token);
-        localStorage.setItem('auth_user', JSON.stringify(data.user));
-        localStorage.setItem('auth_expiry', (Date.now() + 30 * 24 * 60 * 60 * 1000).toString());
-
-        showAlert(data.message || 'Account verified successfully!', 'success');
-        signupForm.reset();
-        otpForm.reset();
-        clearOtpDigits();
-        pendingSignupData = null;
-        if (otpTimerInterval) clearInterval(otpTimerInterval);
-        showDashboard(data.user);
+        if (data.success) {
+          verifiedResetOtp = otp;
+          showAlert('Email verified! Please enter your new password.', 'success');
+          clearOtpDigits();
+          if (otpTimerInterval) clearInterval(otpTimerInterval);
+          switchView('newPasswordView');
+        } else {
+          showAlert(data.message || 'Invalid or expired OTP code.');
+        }
       } else {
-        showAlert(data.message || 'Invalid verification code. Please check and retry.');
+        if (!pendingSignupData) {
+          showAlert('Signup session expired. Please sign up again.');
+          switchView('signupView');
+          return;
+        }
+
+        const endpoint = pendingSignupData.isGoogle
+          ? `${API_BASE}/api/verify-google-otp`
+          : `${API_BASE}/api/verify-otp-signup`;
+
+        const payload = pendingSignupData.isGoogle
+          ? {
+              email: pendingSignupData.email,
+              firstName: pendingSignupData.firstName,
+              lastName: pendingSignupData.lastName,
+              googleId: pendingSignupData.googleId,
+              avatar: pendingSignupData.avatar,
+              otp
+            }
+          : {
+              ...pendingSignupData,
+              otp
+            };
+
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          clearAuthData();
+          localStorage.setItem('auth_token', data.token);
+          localStorage.setItem('auth_user', JSON.stringify(data.user));
+          localStorage.setItem('auth_expiry', (Date.now() + 30 * 24 * 60 * 60 * 1000).toString());
+
+          showAlert(data.message || 'Account verified successfully!', 'success');
+          signupForm.reset();
+          otpForm.reset();
+          clearOtpDigits();
+          pendingSignupData = null;
+          if (otpTimerInterval) clearInterval(otpTimerInterval);
+          showDashboard(data.user);
+        } else {
+          showAlert(data.message || 'Invalid verification code. Please check and retry.');
+        }
       }
     } catch (err) {
       showAlert('Unable to connect to server. Please ensure backend is running.');
     } finally {
       verifyOtpBtn.disabled = false;
-      verifyOtpBtn.textContent = 'Verify & Create Account';
+      verifyOtpBtn.textContent = otpMode === 'forgot' ? 'Verify & Proceed' : 'Verify & Create Account';
     }
   }
 
@@ -530,15 +627,14 @@
     });
   }
 
-  if (resetForm) {
-    resetForm.addEventListener('submit', async e => {
+  if (newPasswordForm) {
+    newPasswordForm.addEventListener('submit', async e => {
       e.preventDefault();
-      const email = document.getElementById('resetEmail').value.trim();
       const newPassword = document.getElementById('newPassword').value;
       const confirmNewPassword = document.getElementById('confirmNewPassword').value;
 
-      if (!email || !newPassword || !confirmNewPassword) {
-        showAlert('Please fill in all fields.');
+      if (!newPassword || !confirmNewPassword) {
+        showAlert('Please fill in both password fields.');
         return;
       }
 
@@ -552,15 +648,16 @@
         return;
       }
 
-      resetBtn.disabled = true;
-      resetBtn.textContent = 'Updating password…';
+      savePasswordBtn.disabled = true;
+      savePasswordBtn.textContent = 'Saving password…';
 
       try {
-        const res = await fetch(`${API_BASE}/api/forgot-password`, {
+        const res = await fetch(`${API_BASE}/api/reset-password`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            email,
+            email: pendingResetEmail,
+            otp: verifiedResetOtp,
             newPassword,
             confirmNewPassword
           })
@@ -569,22 +666,25 @@
 
         if (data.success) {
           showAlert(data.message || 'Password reset successfully! Please log in.', 'success');
-          resetForm.reset();
-          document.getElementById('loginEmail').value = email;
+          newPasswordForm.reset();
+          if (forgotForm) forgotForm.reset();
+          document.getElementById('loginEmail').value = pendingResetEmail;
+          pendingResetEmail = '';
+          verifiedResetOtp = '';
           switchView('loginView');
         } else {
-          showAlert(data.message || 'Failed to reset password.');
+          showAlert(data.message || 'Failed to update password.');
         }
       } catch (err) {
-        showAlert('Unable to connect to server. Please ensure backend is running.');
+        showAlert('Unable to connect to server.');
       } finally {
-        resetBtn.disabled = false;
-        resetBtn.textContent = 'Save new password';
+        savePasswordBtn.disabled = false;
+        savePasswordBtn.textContent = 'Save new password';
       }
     });
   }
 
-  async function handleGoogleAccessToken(accessToken, action = 'login') {
+  async function handleGoogleAccessToken(accessToken) {
     if (!accessToken) {
       showAlert('Google sign in failed. Please try again.');
       return;
@@ -594,13 +694,15 @@
       const res = await fetch(`${API_BASE}/api/google-auth`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accessToken, action })
+        body: JSON.stringify({ accessToken })
       });
       const data = await res.json();
 
       if (data.requireOtp && data.googleUser) {
+        otpMode = 'signup';
         pendingSignupData = { ...data.googleUser, isGoogle: true };
         otpEmailDisplay.textContent = data.googleUser.email;
+        verifyOtpBtn.textContent = 'Verify & Create Account';
         switchView('otpView');
         startOtpTimer();
         clearOtpDigits();
@@ -622,8 +724,6 @@
     }
   }
 
-  let currentGoogleAction = 'login';
-
   function initGoogleAuth() {
     if (window.google && window.google.accounts && window.google.accounts.oauth2) {
       googleTokenClient = google.accounts.oauth2.initTokenClient({
@@ -631,7 +731,7 @@
         scope: 'email profile openid',
         callback: (tokenResponse) => {
           if (tokenResponse && tokenResponse.access_token) {
-            handleGoogleAccessToken(tokenResponse.access_token, currentGoogleAction);
+            handleGoogleAccessToken(tokenResponse.access_token);
           } else if (tokenResponse && tokenResponse.error) {
             showAlert('Google sign in was cancelled or failed.');
           }
@@ -653,8 +753,7 @@
     }, 200);
   });
 
-  function triggerGoogleSignIn(action = 'login') {
-    currentGoogleAction = action;
+  function triggerGoogleSignIn() {
     if (!googleTokenClient) {
       initGoogleAuth();
     }
@@ -666,6 +765,6 @@
     }
   }
 
-  if (googleBtn) googleBtn.addEventListener('click', () => triggerGoogleSignIn('login'));
-  if (googleSignupBtn) googleSignupBtn.addEventListener('click', () => triggerGoogleSignIn('signup'));
+  if (googleBtn) googleBtn.addEventListener('click', () => triggerGoogleSignIn());
+  if (googleSignupBtn) googleSignupBtn.addEventListener('click', () => triggerGoogleSignIn());
 })();
