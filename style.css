@@ -412,13 +412,19 @@ body {
   color: #fff;
   border: none;
   box-shadow: var(--shadow-btn);
+  position: relative;
+  transition: background var(--transition), box-shadow var(--transition), transform 0.16s cubic-bezier(0.25, 1, 0.5, 1);
+  will-change: transform;
 }
 .btn-primary:hover {
   background: #333;
   box-shadow: 0 4px 14px rgba(0,0,0,.15);
-  transform: translateY(-1px);
 }
 .btn-primary:active { transform: translateY(0); }
+.btn-dodge-locked {
+  transform: translate(0, 0) !important;
+  transition: transform 0.25s ease-out !important;
+}
 .btn-google {
   background: #fff;
   color: var(--text-primary);

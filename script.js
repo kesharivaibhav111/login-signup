@@ -49,6 +49,7 @@
   let verifiedResetOtp = '';
   let otpMode = 'signup';
   let otpTimerInterval = null;
+  const dodgingControllers = [];
 
   function showAlert(message, type = 'error') {
     if (alertTimer) clearTimeout(alertTimer);
@@ -67,6 +68,7 @@
     }
     setPeek(false);
     resetAllToggles();
+    dodgingControllers.forEach(dc => dc.reset());
   }
 
   function showDashboard(user) {
@@ -238,6 +240,137 @@
   allPwInputs.forEach(input => {
     input.addEventListener('focus', () => setPeek(true));
     input.addEventListener('blur', () => { if (input.type === 'password') setPeek(false); });
+  });
+
+  function isEmailValid(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).trim());
+  }
+
+  function setupDodgingButton(btn, form, validateFn) {
+    if (!btn || !form) return;
+
+    let posX = 0;
+    let posY = 0;
+    let active = true;
+
+    function check() {
+      const valid = validateFn();
+      if (valid) {
+        active = false;
+        reset();
+      } else {
+        active = true;
+      }
+      return valid;
+    }
+
+    function reset() {
+      posX = 0;
+      posY = 0;
+      btn.style.transform = 'translate(0px, 0px)';
+      btn.classList.add('btn-dodge-locked');
+      setTimeout(() => btn.classList.remove('btn-dodge-locked'), 250);
+    }
+
+    function dodge(e) {
+      if (!active || check()) return;
+      if (!btn.offsetParent) return;
+
+      const rect = btn.getBoundingClientRect();
+      const btnX = rect.left + rect.width / 2;
+      const btnY = rect.top + rect.height / 2;
+
+      const mouseX = e.clientX;
+      const mouseY = e.clientY;
+
+      const diffX = btnX - mouseX;
+      const diffY = btnY - mouseY;
+      const dist = Math.hypot(diffX, diffY);
+      const radius = 85;
+
+      if (dist < radius) {
+        const formRect = form.getBoundingClientRect();
+        const maxBoundX = Math.min(125, Math.max(70, (formRect.width - rect.width) / 2 + 80));
+        const maxBoundY = 40;
+
+        let nextX = 0;
+        let nextY = 0;
+
+        if (dist < 15) {
+          nextX = posX >= 0 ? -90 : 90;
+          nextY = posY >= 0 ? -32 : 32;
+        } else {
+          const angle = Math.atan2(diffY, diffX);
+          const push = (radius - dist) + 50;
+          nextX = posX + Math.cos(angle) * push;
+          nextY = posY + Math.sin(angle) * push;
+        }
+
+        if (nextX > maxBoundX) nextX = -maxBoundX + 20;
+        else if (nextX < -maxBoundX) nextX = maxBoundX - 20;
+
+        if (nextY > maxBoundY) nextY = -maxBoundY + 10;
+        else if (nextY < -maxBoundY) nextY = maxBoundY - 10;
+
+        posX = nextX;
+        posY = nextY;
+
+        btn.style.transform = `translate(${Math.round(posX)}px, ${Math.round(posY)}px)`;
+      }
+    }
+
+    document.addEventListener('pointermove', dodge);
+
+    btn.addEventListener('mouseenter', () => {
+      if (!check()) {
+        posX = posX >= 0 ? -85 : 85;
+        posY = posY >= 0 ? -30 : 30;
+        btn.style.transform = `translate(${posX}px, ${posY}px)`;
+      }
+    });
+
+    btn.addEventListener('touchstart', e => {
+      if (!check()) {
+        e.preventDefault();
+        posX = posX >= 0 ? -85 : 85;
+        posY = posY >= 0 ? -30 : 30;
+        btn.style.transform = `translate(${posX}px, ${posY}px)`;
+      }
+    }, { passive: false });
+
+    form.querySelectorAll('input').forEach(inp => {
+      inp.addEventListener('input', check);
+      inp.addEventListener('change', check);
+      inp.addEventListener('keyup', check);
+    });
+
+    dodgingControllers.push({ reset, check });
+  }
+
+  setupDodgingButton(loginBtn, loginForm, () => {
+    const email = document.getElementById('loginEmail').value.trim();
+    const pw = document.getElementById('loginPassword').value;
+    return isEmailValid(email) && pw.length >= 6;
+  });
+
+  setupDodgingButton(signupBtn, signupForm, () => {
+    const fn = document.getElementById('firstName').value.trim();
+    const ln = document.getElementById('lastName').value.trim();
+    const email = document.getElementById('signupEmail').value.trim();
+    const pw = document.getElementById('signupPassword').value;
+    const cpw = document.getElementById('confirmPassword').value;
+    return fn !== '' && ln !== '' && isEmailValid(email) && pw.length >= 6 && pw === cpw;
+  });
+
+  setupDodgingButton(sendForgotOtpBtn, forgotForm, () => {
+    const email = document.getElementById('forgotEmail').value.trim();
+    return isEmailValid(email);
+  });
+
+  setupDodgingButton(savePasswordBtn, newPasswordForm, () => {
+    const pw = document.getElementById('newPassword').value;
+    const cpw = document.getElementById('confirmNewPassword').value;
+    return pw.length >= 6 && pw === cpw;
   });
 
   function getEnteredOtp() {
