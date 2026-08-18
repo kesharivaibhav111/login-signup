@@ -411,6 +411,7 @@
     signupBtn.textContent = 'Sending OTP…';
 
     try {
+      const b_hp = signupForm.querySelector('.hp-input')?.value || '';
       const res = await fetch(`${API_BASE}/api/send-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -420,7 +421,8 @@
           lastName,
           email,
           password,
-          confirmPassword
+          confirmPassword,
+          b_hp
         })
       });
       const data = await res.json();
@@ -460,10 +462,11 @@
       sendForgotOtpBtn.textContent = 'Sending code…';
 
       try {
+        const b_hp = forgotForm.querySelector('.hp-input')?.value || '';
         const res = await fetch(`${API_BASE}/api/forgot-password-otp`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email })
+          body: JSON.stringify({ email, b_hp })
         });
         const data = await res.json();
 

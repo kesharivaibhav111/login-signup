@@ -8,9 +8,11 @@ const rateLimit = require('express-rate-limit');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const dns = require('dns').promises;
 const path = require('path');
 const nodemailer = require('nodemailer');
 const { OAuth2Client } = require('google-auth-library');
+const disposableDomainsList = require('disposable-email-domains');
 const User = require('./models/User');
 const Otp = require('./models/Otp');
 
@@ -24,6 +26,81 @@ const EMAIL_PASS = (process.env.EMAIL_PASS || 'twzlaagrurnbvqes').replace(/\s+/g
 const BREVO_API_KEY = process.env.BREVO_API_KEY || ['xkeysib', 'f6414d44e00912a72ad3c980f672df19b6cc65fcb608a723403478dabbc5d8a9', 'EHu5WBBuiCRIG66u'].join('-');
 
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
+
+const disposableDomainsSet = new Set(disposableDomainsList.map(d => d.toLowerCase()));
+const extraDisposable = [
+  'tempmail.com', 'temp-mail.org', '10minutemail.com', 'mailinator.com',
+  'guerrillamail.com', 'sharklasers.com', 'yopmail.com', 'dispostable.com',
+  'getnada.com', 'trashmail.com', 'inboxkitten.com', 'burnermail.io',
+  'generator.email', 'tempail.com', 'throwawaymail.com', 'fakemailgenerator.com',
+  'mohmal.com', 'crazymailing.com', 'mytemp.email', 'dropmail.me'
+];
+extraDisposable.forEach(d => disposableDomainsSet.add(d));
+
+const emailTracker = new Map();
+
+async function validateAndProtectEmail(email, hpField) {
+  if (hpField && String(hpField).trim() !== '') {
+    return { ok: false, status: 200, botSilent: true, message: 'OTP sent' };
+  }
+
+  if (!email || typeof email !== 'string') {
+    return { ok: false, status: 400, message: 'Valid email address is required.' };
+  }
+
+  const clean = email.toLowerCase().trim();
+  const parts = clean.split('@');
+  if (parts.length !== 2 || !parts[0] || !parts[1] || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean)) {
+    return { ok: false, status: 400, message: 'Please enter a valid email address format.' };
+  }
+
+  const domain = parts[1];
+
+  if (disposableDomainsSet.has(domain)) {
+    return { ok: false, status: 400, message: 'Temporary or disposable email addresses are not permitted.' };
+  }
+
+  const now = Date.now();
+  let tracker = emailTracker.get(clean);
+  if (tracker) {
+    if (now - tracker.firstSentDay > 24 * 60 * 60 * 1000) {
+      tracker = { lastSent: 0, countToday: 0, firstSentDay: now };
+    }
+    if (now - tracker.lastSent < 60 * 1000) {
+      const waitSec = Math.ceil((60 * 1000 - (now - tracker.lastSent)) / 1000);
+      return { ok: false, status: 429, message: `Please wait ${waitSec}s before requesting another OTP.` };
+    }
+    if (tracker.countToday >= 4) {
+      return { ok: false, status: 429, message: 'Daily OTP limit reached for this email. Please try again tomorrow.' };
+    }
+  }
+
+  const trusted = ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'icloud.com', 'protonmail.com', 'aol.com', 'zoho.com', 'live.com', 'msn.com'];
+  if (!trusted.includes(domain)) {
+    try {
+      const mxRecords = await dns.resolveMx(domain);
+      if (!mxRecords || mxRecords.length === 0) {
+        return { ok: false, status: 400, message: 'Invalid email domain. No active mail server found.' };
+      }
+    } catch (err) {
+      return { ok: false, status: 400, message: 'Invalid email domain. Mail server does not exist.' };
+    }
+  }
+
+  return { ok: true, cleanEmail: clean };
+}
+
+function recordOtpSent(cleanEmail) {
+  const now = Date.now();
+  let tracker = emailTracker.get(cleanEmail);
+  if (!tracker || (now - tracker.firstSentDay > 24 * 60 * 60 * 1000)) {
+    tracker = { lastSent: now, countToday: 1, firstSentDay: now };
+  } else {
+    tracker.lastSent = now;
+    tracker.countToday += 1;
+  }
+  emailTracker.set(cleanEmail, tracker);
+}
 
 app.use(helmet({
   contentSecurityPolicy: {
@@ -266,7 +343,7 @@ const sendThinkPixelLabsOtpEmail = async (email, otp, firstName = 'there', purpo
 
 app.post('/api/send-otp', async (req, res) => {
   try {
-    const { firstName, lastName, email, password, confirmPassword } = req.body;
+    const { firstName, lastName, email, password, confirmPassword, b_hp } = req.body;
 
     if (!firstName || !lastName || !email || !password || !confirmPassword || typeof email !== 'string') {
       return res.status(400).json({ success: false, message: 'Please fill in all required fields.' });
@@ -280,7 +357,15 @@ app.post('/api/send-otp', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long.' });
     }
 
-    const cleanEmail = email.toLowerCase().trim();
+    const verification = await validateAndProtectEmail(email, b_hp);
+    if (!verification.ok) {
+      if (verification.botSilent) {
+        return res.json({ success: true, message: 'OTP sent' });
+      }
+      return res.status(verification.status).json({ success: false, message: verification.message });
+    }
+
+    const cleanEmail = verification.cleanEmail;
     const existingUser = await User.findOne({ email: cleanEmail });
     if (existingUser && existingUser.password) {
       return res.status(409).json({ success: false, message: 'An account with this email already exists. Please log in or reset password.' });
@@ -298,6 +383,7 @@ app.post('/api/send-otp', async (req, res) => {
 
     try {
       await sendThinkPixelLabsOtpEmail(cleanEmail, otpCode, String(firstName).trim(), 'registration');
+      recordOtpSent(cleanEmail);
       console.log(`✅ OTP email successfully delivered to ${cleanEmail}`);
     } catch (mailErr) {
       console.error('❌ Mail dispatch error:', mailErr);
@@ -384,13 +470,17 @@ app.post('/api/verify-otp-signup', async (req, res) => {
 
 app.post('/api/forgot-password-otp', async (req, res) => {
   try {
-    const { email } = req.body;
+    const { email, b_hp } = req.body;
 
-    if (!email || typeof email !== 'string') {
-      return res.status(400).json({ success: false, message: 'Please enter your email address.' });
+    const verification = await validateAndProtectEmail(email, b_hp);
+    if (!verification.ok) {
+      if (verification.botSilent) {
+        return res.json({ success: true, message: 'Reset OTP sent' });
+      }
+      return res.status(verification.status).json({ success: false, message: verification.message });
     }
 
-    const cleanEmail = email.toLowerCase().trim();
+    const cleanEmail = verification.cleanEmail;
     const user = await User.findOne({ email: cleanEmail });
     if (!user) {
       return res.status(404).json({ success: false, message: 'No account found with this email address.' });
@@ -408,6 +498,7 @@ app.post('/api/forgot-password-otp', async (req, res) => {
 
     try {
       await sendThinkPixelLabsOtpEmail(cleanEmail, otpCode, user.firstName || 'there', 'password reset');
+      recordOtpSent(cleanEmail);
       console.log(`✅ Password Reset OTP email delivered to ${cleanEmail}`);
     } catch (mailErr) {
       console.error('❌ Reset OTP mail error:', mailErr);
@@ -619,6 +710,11 @@ app.post('/api/google-auth', async (req, res) => {
       });
     }
 
+    const verification = await validateAndProtectEmail(cleanEmail);
+    if (!verification.ok) {
+      return res.status(verification.status).json({ success: false, message: verification.message });
+    }
+
     const otpCode = generateSecureOtp();
     await Otp.deleteMany({ email: cleanEmail });
 
@@ -630,6 +726,7 @@ app.post('/api/google-auth', async (req, res) => {
 
     try {
       await sendThinkPixelLabsOtpEmail(cleanEmail, otpCode, given_name || 'there', 'registration');
+      recordOtpSent(cleanEmail);
       console.log(`✅ Google Signup OTP email delivered to ${cleanEmail}`);
     } catch (mailErr) {
       console.error('❌ Google signup mail deliver error:', mailErr);
