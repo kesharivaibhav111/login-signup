@@ -18,12 +18,12 @@ const Otp = require('./models/Otp');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-const JWT_SECRET = (process.env.JWT_SECRET && process.env.JWT_SECRET.trim()) || 'fallback_secret_key_login_2026';
-const GOOGLE_CLIENT_ID = (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_ID.trim()) || '475693894846-vo3m578joq2folkmt2qbnn2uahl8qsau.apps.googleusercontent.com';
-const MONGO_URI = (process.env.MONGO_URI && process.env.MONGO_URI.trim()) || 'mongodb+srv://vaibhavkeshari495_db_user:8yysFuy2pC1nMp7i@cluster0.bkynzi0.mongodb.net/auth_db?retryWrites=true&w=majority&appName=Cluster0';
-const EMAIL_USER = (process.env.EMAIL_USER || 'vaibhavkeshari495@gmail.com').trim().toLowerCase();
-const EMAIL_PASS = (process.env.EMAIL_PASS || 'twzlaagrurnbvqes').replace(/\s+/g, '');
-const BREVO_API_KEY = process.env.BREVO_API_KEY || ['xkeysib', 'f6414d44e00912a72ad3c980f672df19b6cc65fcb608a723403478dabbc5d8a9', 'EHu5WBBuiCRIG66u'].join('-');
+const JWT_SECRET = process.env.JWT_SECRET;
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const MONGO_URI = process.env.MONGO_URI;
+const EMAIL_USER = process.env.EMAIL_USER ? process.env.EMAIL_USER.trim().toLowerCase() : '';
+const EMAIL_PASS = process.env.EMAIL_PASS ? process.env.EMAIL_PASS.replace(/\s+/g, '') : '';
+const BREVO_API_KEY = process.env.BREVO_API_KEY || '';
 
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
@@ -193,6 +193,10 @@ const transporter = nodemailer.createTransport({
 });
 
 const connectDB = async () => {
+  if (!MONGO_URI) {
+    console.error('❌ MONGO_URI environment variable is missing in .env');
+    return;
+  }
   try {
     await mongoose.connect(MONGO_URI, {
       serverSelectionTimeoutMS: 30000,
