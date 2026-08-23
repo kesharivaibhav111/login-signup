@@ -1,6 +1,6 @@
 {
-  "name": "login-signup-app",
-  "version": "1.0.0",
+  "name": "@vaibhav_keshari/login-signup-app",
+  "version": "1.0.1",
   "description": "Interactive Login and Signup with Animated Mascots and MongoDB Backend",
   "main": "server.js",
   "scripts": {
