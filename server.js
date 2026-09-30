@@ -1,4 +1,5 @@
 require('dotenv').config();
+require('dns').setDefaultResultOrder('ipv4first'); // Force IPv4 to fix Render's ENETUNREACH with Gmail IPv6
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -17,6 +18,8 @@ const User = require('./models/User');
 const Otp = require('./models/Otp');
 
 const app = express();
+app.set('trust proxy', 1); // Fixes express-rate-limit ERR_ERL_UNEXPECTED_X_FORWARDED_FOR on Render
+
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET;
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
